@@ -657,89 +657,6 @@ function my_onsite_coupons_table() {
     }
 </style>
 
-<h2>🎫 คูปองส่วนลดพิเศษสำหรับใช้งานหน้าร้าน</h2>
-<?php
-if(isset($_GET['status'])) {
-    if($_GET['status'] == 'coupon_converted_to_website') {
-    ?>
-        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
-            ✅ เปลี่ยนคูปองเป็นคูปองส่วนลดสำหรับเว็บไซต์แล้ว !
-        </div>
-    <?php
-    }
-
-    if($_GET['status'] == 'coupon_converted_to_onsite') {
-    ?>
-        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
-            ✅ เปลี่ยนคูปองเป็นคูปองส่วนลดสำหรับหน้าร้านแล้ว !
-        </div>
-    <?php
-    }
-}
-?>
-<div style="overflow: auto;">
-    <table class="wp-list-table widefat fixed striped" style="white-space: nowrap;">
-        <thead>
-            <tr>
-                <th>ส่วนลด</th>
-                <th colspan="2">เงื่อนไขการใช้คูปอง</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php
-                // แก้จุดที่ 1: ใช้ count() เช็ค array
-                if(count($my_onsite_coupons) === 0) { 
-                    echo "<tr><td colspan='3'>ไม่มีคูปองสำหรับหน้าร้าน...</td></tr>"; 
-                } else {
-                    foreach($my_onsite_coupons as $my_onsite_coupon) {
-            ?>
-            <tr>
-                <td><strong><?=$my_onsite_coupon->discount;?></strong></td>
-                <td><?=$my_onsite_coupon->coupon_condition;?></td>
-                <td style="display: flex;">
-                    <?php
-                    $real_coupon_id = $wpdb->get_var($wpdb->prepare(
-                        "SELECT ID FROM {$wpdb->posts} WHERE post_title = %s AND post_type = 'shop_coupon' AND post_status = 'publish' LIMIT 1",
-                        $my_onsite_coupon->code
-                    ));
-                    if(!$real_coupon_id) {
-                    ?>
-                    <button class="button button-small" style="
-                    padding: 5px 20px;
-                    font-size: 14px;
-                    line-height: 20px;"
-                    onclick="showCoupon('<?=$my_onsite_coupon->code;?>', '<?=$my_onsite_coupon->discount;?>', '<?=$my_onsite_coupon->coupon_condition;?>')">ใช้คูปองหน้าร้าน</button>
-                    <button class="button button-small" style="
-                    padding: 5px 20px;
-                    font-size: 14px;
-                    line-height: 20px;
-                    margin: 0 0 0 10px;
-                    "
-                    onclick="changeToWooCommerceCoupon('<?=$my_onsite_coupon->code;?>')">เปลี่ยนเป็นคูปองในเว็บไซต์</button>
-                    <?php
-                    } else {
-                    ?>
-                    <code><?=$my_onsite_coupon->code;?></code>
-                    <button class="button button-small" style="
-                    padding: 5px 20px;
-                    font-size: 14px;
-                    line-height: 20px;
-                    margin: 0 0 0 10px;
-                    "
-                    onclick="changeToOnsiteCoupon('<?=$my_onsite_coupon->code;?>')">เปลี่ยนเป็นคูปองหน้าร้าน</button>
-                    <?php
-                    }
-                    ?>
-                </td>
-            </tr>
-            <?php
-                    }
-                }
-            ?>
-        </tbody>
-    </table>
-</div>
-
 <!-- Popup สำหรับโชว์โค้ด -->
 <div id="couponBox">
     <div style="background: #fff; border-radius: 20px; padding: 40px; width: 80%;">
@@ -757,6 +674,95 @@ if(isset($_GET['status'])) {
         margin-bobttom: 20px;" id="couponBoxCode"></span>
         <button class="button" onclick="hideCoupon()">ปิดหน้าจอนี้</button>
     </div>
+</div>
+
+<div class="accordion" id="onsiteCoupon">
+  <div class="card">
+    <div class="card-header"><button class="btn btn-link" data-toggle="collapse" data-target="#onsiteCouponAccordion" aria-expanded="true" aria-controls="onsiteCouponAccordion">🎫 คูปองส่วนลดพิเศษสำหรับใช้งานหน้าร้าน</button></div>
+    <div id="onsiteCouponAccordion" class="collapse show" data-parent="#onsiteCoupon">
+      <div class="card-body" style="overflow: auto; background:#fff; border-radius:8px; padding:25px; margin-bottom:30px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
+        <?php
+        if(isset($_GET['status'])) {
+            if($_GET['status'] == 'coupon_converted_to_website') {
+            ?>
+                <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                    ✅ เปลี่ยนคูปองเป็นคูปองส่วนลดสำหรับเว็บไซต์แล้ว !
+                </div>
+            <?php
+            }
+
+            if($_GET['status'] == 'coupon_converted_to_onsite') {
+            ?>
+                <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+                    ✅ เปลี่ยนคูปองเป็นคูปองส่วนลดสำหรับหน้าร้านแล้ว !
+                </div>
+            <?php
+            }
+        }
+        ?>
+        <table class="wp-list-table widefat fixed striped" style="white-space: nowrap;">
+            <thead>
+                <tr>
+                    <th>ส่วนลด</th>
+                    <th colspan="2">เงื่อนไขการใช้คูปอง</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                    // แก้จุดที่ 1: ใช้ count() เช็ค array
+                    if(count($my_onsite_coupons) === 0) { 
+                        echo "<tr><td colspan='3'>ไม่มีคูปองสำหรับหน้าร้าน...</td></tr>"; 
+                    } else {
+                        foreach($my_onsite_coupons as $my_onsite_coupon) {
+                ?>
+                <tr>
+                    <td><strong><?=$my_onsite_coupon->discount;?></strong></td>
+                    <td><?=$my_onsite_coupon->coupon_condition;?></td>
+                    <td style="display: flex;">
+                        <?php
+                        $real_coupon_id = $wpdb->get_var($wpdb->prepare(
+                            "SELECT ID FROM {$wpdb->posts} WHERE post_title = %s AND post_type = 'shop_coupon' AND post_status = 'publish' LIMIT 1",
+                            $my_onsite_coupon->code
+                        ));
+                        if(!$real_coupon_id) {
+                        ?>
+                        <button class="button button-small" style="
+                        padding: 5px 20px;
+                        font-size: 14px;
+                        line-height: 20px;"
+                        onclick="showCoupon('<?=$my_onsite_coupon->code;?>', '<?=$my_onsite_coupon->discount;?>', '<?=$my_onsite_coupon->coupon_condition;?>')">ใช้คูปองหน้าร้าน</button>
+                        <button class="button button-small" style="
+                        padding: 5px 20px;
+                        font-size: 14px;
+                        line-height: 20px;
+                        margin: 0 0 0 10px;
+                        "
+                        onclick="changeToWooCommerceCoupon('<?=$my_onsite_coupon->code;?>')">เปลี่ยนเป็นคูปองในเว็บไซต์</button>
+                        <?php
+                        } else {
+                        ?>
+                        <code><?=$my_onsite_coupon->code;?></code>
+                        <button class="button button-small" style="
+                        padding: 5px 20px;
+                        font-size: 14px;
+                        line-height: 20px;
+                        margin: 0 0 0 10px;
+                        "
+                        onclick="changeToOnsiteCoupon('<?=$my_onsite_coupon->code;?>')">เปลี่ยนเป็นคูปองหน้าร้าน</button>
+                        <?php
+                        }
+                        ?>
+                    </td>
+                </tr>
+                <?php
+                        }
+                    }
+                ?>
+            </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
