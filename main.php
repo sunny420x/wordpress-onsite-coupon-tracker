@@ -39,7 +39,10 @@ function onsite_couple_plugin_install() {
         status int(1) NOT NULL DEFAULT 0,
         user_id int(11),
         campaign_id int(11) NOT NULL,
+        discount_amount int(11) NOT NULL DEFAULT 0,
+        minspend int(11) NOT NULL DEFAULT 0,
         created_at datetime NOT NULL,
+        billing_id VARCHAR(50) DEFAULT NULL,
         PRIMARY KEY  (id)
     ) $charset_collate;";
 
@@ -87,14 +90,20 @@ function onsite_coupon_tracker_page() {
     }
 
     if(isset($_POST['addCoupon'])) {
-        $coupon_code = sanitize_text_field($_POST['coupon_code']);
+        $coupon_amount = (int) sanitize_text_field($_POST['coupon_amount']);
         $coupon_discount = sanitize_text_field($_POST['coupon_discount']);
         $coupon_condition = sanitize_text_field($_POST['coupon_condition']);
+        $discount_amount = sanitize_text_field($_POST['discount_amount']);
+        $minspend = sanitize_text_field($_POST['minspend']);
         $campaign_id = sanitize_text_field($_POST['campaign_id']);
         $created_at = date("Y-m-d H:i:s");
-
-        $insert_query = $wpdb->prepare("INSERT INTO {$wpdb->prefix}onsite_coupon(code, coupon_condition, discount, campaign_id, created_at) VALUES(%s, %s, %s, %d, %s)", $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $created_at);
-        $wpdb->query($insert_query);
+        
+        for($i = 0; $i < $coupon_amount; $i++) {            
+            $coupon_code = wp_generate_password( 5, false );
+            $insert_query = $wpdb->prepare("INSERT INTO {$wpdb->prefix}onsite_coupon(code, coupon_condition, discount, campaign_id, discount_amount, minspend, created_at) VALUES(%s, %s, %s, %d, %d, %d, %s)", 
+             $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $discount_amount, $minspend, $created_at);
+            $wpdb->query($insert_query);
+        }
 
         wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker&campaign='.$campaign_id));
         exit;
@@ -105,10 +114,13 @@ function onsite_coupon_tracker_page() {
         $coupon_code = sanitize_text_field($_POST['coupon_code']);
         $coupon_discount = sanitize_text_field($_POST['coupon_discount']);
         $coupon_condition = sanitize_text_field($_POST['coupon_condition']);
+        $discount_amount = sanitize_text_field($_POST['discount_amount']);
+        $minspend = sanitize_text_field($_POST['minspend']);
         $campaign_id = sanitize_text_field($_POST['campaign_id']);
         $coupon_status = (int) sanitize_text_field($_POST['coupon_status']);
 
-        $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_coupon SET code = %s, coupon_condition = %s, discount = %s, campaign_id = %d, status = %d WHERE id = %d", $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $coupon_status, $coupon_id);
+        $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_coupon SET code = %s, coupon_condition = %s, discount = %s, campaign_id = %d, status = %d, discount_amount = %d, minspend = %d WHERE id = %d",
+         $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $coupon_status, $discount_amount, $minspend, $coupon_id);
         $wpdb->query($update_query);
 
         wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker&coupon='.$coupon_id));
@@ -173,25 +185,27 @@ function onsite_coupon_tracker_page() {
             <form action="admin.php?page=onsite_coupon_tracker" method="post">
                 <h2 style="margin-top: 0;">➕ เพิ่มคูปองใหม่</h2>
                 <br>
-                รหัสคูปอง: <input type="text" name="coupon_code" id="" value="<?=wp_generate_password( 5, false )?>" required><br><br>
                 ลดจำนวน: <input type="text" name="coupon_discount" id="" required><br><br>
                 เงื่อนไข: <input type="text" name="coupon_condition" id="" style="width: 500px;" required><br><br>
                 แคมเปญ: <select name="campaign_id" id="">
                     <?php
                     $campaigns = $wpdb->get_results(
                         "SELECT id,name FROM {$wpdb->prefix}onsite_campaign ORDER BY id DESC"
-                    );
-                    foreach($campaigns as $campaign) {
-                    ?>
+                        );
+                        foreach($campaigns as $campaign) {
+                            ?>
                     <option value="<?=$campaign->id;?>"><?=$campaign->name;?></option>
                     <?php 
                     }
                     ?>
                 </select><br><br>
+                ลดจำนวน: <input type="number" name="discount_amount" id="" required> บาท<br><br>
+                ซื้อขั้นต่ำ: <input type="number" name="minspend" id="" required> บาท<br><br>
+                สร้างคูปองจำนวน: <input type="number" name="coupon_amount" id="" value="1" required><br><br>
                 <input type="submit" value="สร้างคูปอง" name="addCoupon" class="button">
             </form>
             <?php
-            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign'])) {
+            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "all") {
                 $campaign_id = $_GET['campaign'];
             ?>
             <h1 style="margin-top: 0;">🎫 คูปอง</h1>
@@ -231,8 +245,55 @@ function onsite_coupon_tracker_page() {
             <table class="wp-list-table widefat fixed striped">
                 <thead>
                     <tr>
+                        <th>จำนวนคูปองในระบบ</th>
+                        <th>ลดจำนวน</th>
+                        <th>เงื่อนไข</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                        if($_GET['searchCoupon'] === "all") {
+                            $coupons = $wpdb->get_results($wpdb->prepare(
+                                "SELECT discount,coupon_condition,COUNT(*) as amount FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d GROUP BY discount, coupon_condition",
+                                $_GET['campaign']
+                            ));
+                        }
+
+                        foreach($coupons as $coupon) {
+                    ?>
+                    <tr>
+                        <td><?=$coupon->amount;?> ใบ</td>
+                        <td><?=$coupon->discount;?></td>
+                        <td><?=$coupon->coupon_condition;?></td>
+                        <td><button onclick="searchCouponByCondition(<?= $_GET['campaign'];?>, '<?=$coupon->coupon_condition;?>', '<?=$coupon->discount;?>')" class="button">ดูคูปองทั้งหมด</button></td>
+                    </tr>
+                    <?php
+                        }
+                    ?>
+                </tbody>
+            </table>
+            <script>
+                function searchCouponByCondition(campaign_id, condition, discount) {
+                    window.location.href=`admin.php?page=onsite_coupon_tracker&option=coupon-by-condition&condition=${condition}&discount=${discount}&campaign_id=${campaign_id}`
+                }
+            </script>
+            <?php
+            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] != "all") {
+                $campaign_id = $_GET['campaign'];
+
+                $coupons = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND code LIKE %s",
+                    $_GET['campaign'], "%".$_GET['searchCoupon']."%"
+                ));
+            ?>
+            <h1 style="margin-top: 0;">🔍 ผลการค้นหา: <?=$_GET['searchCoupon'];?></h1>
+            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=all");?>">กลับไปที่แคมเปญ</a><br><br>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
                         <th>#</th>
-                        <th>คูปอง</th>
+                        <th>Code</th>
                         <th>ลดจำนวน</th>
                         <th>เงื่อนไข</th>
                         <th>สถานะ</th>
@@ -240,23 +301,11 @@ function onsite_coupon_tracker_page() {
                 </thead>
                 <tbody>
                     <?php
-                        if($_GET['searchCoupon'] === "all") {
-                            $coupons = $wpdb->get_results($wpdb->prepare(
-                                "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d",
-                                $_GET['campaign']
-                            ));
-                        } else {
-                            $coupons = $wpdb->get_results($wpdb->prepare(
-                                "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND code = %s",
-                                $_GET['campaign'], $_GET['searchCoupon']
-                            ));
-                        }
-
                         foreach($coupons as $coupon) {
                     ?>
                     <tr>
                         <td><?=$coupon->id;?></td>
-                        <td><a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&coupon=".$coupon->id)?>"><?=$coupon->code;?></a></td>
+                        <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
                         <td><?=$coupon->discount;?></td>
                         <td><?=$coupon->coupon_condition;?></td>
                         <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
@@ -267,7 +316,46 @@ function onsite_coupon_tracker_page() {
                 </tbody>
             </table>
             <?php
-            } elseif(isset($_GET['coupon'])) {
+            } elseif(isset($_GET['option']) && $_GET['option'] == "coupon-by-condition") {
+                $campaign_id = $_GET['campaign_id'];
+
+                $coupons = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND coupon_condition = %s AND discount = %s",
+                    $campaign_id, $_GET['condition'], $_GET['discount']
+                ));
+
+            ?>
+            <h1 style="margin-top: 0;">🔍 ผลการค้นหา</h1>
+            <p>รหัสแคมเปญ: <?=$campaign_id;?> ลด <?=$_GET['discount']?> <?=$_GET['condition']?></p>
+            <h3>พบจำนวนคูปองในระบบ <?=$wpdb->num_rows;?> ใบ</h3>
+            <table class="wp-list-table widefat fixed striped">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Code</th>
+                        <th>ลดจำนวน</th>
+                        <th>เงื่อนไข</th>
+                        <th>สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                        foreach($coupons as $coupon) {
+                    ?>
+                    <tr>
+                        <td><?=$coupon->id;?></td>
+                        <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                        <td><?=$coupon->discount;?></td>
+                        <td><?=$coupon->coupon_condition;?></td>
+                        <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
+                    </tr>
+                    <?php
+                        }
+                    ?>
+                </tbody>
+            </table>
+            <?php
+            } elseif(isset($_GET['option']) && $_GET['option'] == "edit-coupon") {
                 $coupon = $wpdb->get_row($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE id = %d",
                     $_GET['coupon']
@@ -298,6 +386,7 @@ function onsite_coupon_tracker_page() {
                     <option value="1" <?php selected($coupon->status, 1) ?>>ใช้งานแล้ว</option>
                     <option value="0" <?php selected($coupon->status, 0) ?>>ยังไม่ถูกใช้งาน</option>
                 </select><br><br>
+                เลขบิล: <input type="text" name="billing_id" value="<?=$coupon->billing_id;?>"><br><br>
                 <input type="submit" value="บันทึกการเปลี่ยนแปลง" name="editCoupon" class="button">
             </form>
             <?php
@@ -330,45 +419,74 @@ function onsite_coupn_tracker_settings_init()
     register_setting('onsite_coupn_tracker_settings_group', 'onsite_coupn_tracker_enable');
 }
 
-//Front End Page
 add_action('init', function() {
-    // ต้องเอาตัวที่มี /pick/ ไว้ข้างบน เพราะมันมีความเฉพาะเจาะจงมากกว่า
-    add_rewrite_rule('^e-voucher/pick/([^/]+)/?$', 'index.php?pick_code=$matches[1]', 'top');
+    add_rewrite_rule('^e-voucher/pick/([^/]+)/([^/]+)/([^/]+)/?$', 'index.php?pick_discount=$matches[1]&pick_condition=$matches[2]&pick_campaign_id=$matches[3]', 'top');
 });
 
-// 2. ลงทะเบียนตัวแปรทั้งหมดให้ WP รู้จัก
 add_filter('query_vars', function($vars) {
-    $vars[] = 'pick_code';
+    $vars[] = 'pick_discount';
+    $vars[] = 'pick_condition';
+    $vars[] = 'pick_campaign_id';
     return $vars;
 });
 
 add_action('template_redirect', function() {
-    if (get_query_var('pick_code')) {
+    $discount = urldecode(get_query_var('pick_discount'));
+    $condition = urldecode(get_query_var('pick_condition'));
+    $campaign_id = get_query_var('pick_campaign_id');
+    
+    if ($discount && $condition && $campaign_id) {
         global $wpdb;
-
         if (!is_user_logged_in()) {
             wp_redirect(wp_login_url(home_url('/e-voucher/'))); 
             exit;
         }
-        
+
         $user_id = get_current_user_id();
+        $table_name = "{$wpdb->prefix}onsite_coupon";
 
-        // รัน Query อัปเดต onsite_coupon
-        // เราจะอัปเดตเฉพาะคูปองที่ user_id ยังเป็นว่าง (NULL) เพื่อป้องกันคนอื่นมากดซ้ำ
-        $updated = $wpdb->update(
-            "{$wpdb->prefix}onsite_coupon",
-            array('user_id' => $user_id),
-            array('code' => get_query_var('pick_code'), 'user_id' => null), // เงื่อนไข: โค้ดตรง และยังไม่มีเจ้าของ
-            array('%d'),                        // Format ของค่าที่จะเปลี่ยน
-            array('%s', '%d')                   // Format ของเงื่อนไข
-        );
+        $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE user_id = %d", $user_id));
 
-        // 3. Redirect กลับไปหน้าหลักของ e-voucher พร้อมบอกสถานะ
-        if ($updated) {
-            wp_redirect(home_url('/e-voucher/?status=success'));
-        } else {
-            wp_redirect(home_url('/e-voucher/?status=already_taken'));
+        if($already_got_coupon > 0) {
+            wp_redirect(home_url('/e-voucher/?status=you-already-picked'));
+            exit;
         }
+
+        // 1. ค้นหา ID คูปอง 1 ใบ ที่สเปกตรง และ user_id ยังเป็น NULL
+        $coupon_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $table_name 
+             WHERE discount = %s 
+             AND coupon_condition = %s 
+             AND campaign_id = %d 
+             AND user_id IS NULL 
+             LIMIT 1",
+            $discount,
+            $condition,
+            $campaign_id,
+        ));
+
+        if ($coupon_id) {
+            // 2. อัปเดตใบที่เจอให้เป็นของ User คนนี้
+            // ใส่ user_id IS NULL ซ้ำในเงื่อนไขเพื่อกัน Race Condition (คนกดพร้อมกัน)
+            $updated = $wpdb->update(
+                $table_name,
+                array('user_id' => $user_id),
+                array('id' => $coupon_id, 'user_id' => null),
+                array('%d'),
+                array('%d', '%d') // id เป็น %d (int), user_id เป็น %d (null)
+            );
+
+            if ($updated) {
+                wp_redirect(home_url('/e-voucher/?status=success'));
+                exit;
+            }
+        } else {
+            wp_redirect(home_url('/e-voucher/?status=cannot_find_coupon'));
+            exit;
+        }
+
+        // ถ้าไม่เจอคูปองว่าง หรืออัปเดตไม่สำเร็จ
+        wp_redirect(home_url('/e-voucher/?status=out_of_stock'));
         exit;
     }
 });
@@ -385,6 +503,9 @@ add_shortcode('evoucher_page', function() {
             <a href="'. wp_login_url(get_permalink()) .'" class="button" style="background:#1D9DD8; color:#fff; padding:12px 30px; text-decoration:none; border-radius:5px;">เข้าสู่ระบบ</a>
         </div>';
     }
+
+    $user_id = get_current_user_id();
+    $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}onsite_coupon WHERE user_id = %d", $user_id));
 
     $current_time = current_time('mysql');
     $campaigns = $wpdb->get_results($wpdb->prepare(
@@ -457,20 +578,20 @@ add_shortcode('evoucher_page', function() {
             </div>
         <?php endif; ?>
 
+        <?php if (isset($_GET['status']) && $_GET['status'] == 'you-already-picked') : ?>
+            <div style="background: #e69b9b; color: #811414; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #e24242;">
+                ⛔ คุณได้เก็บคูปองไปแล้ว! คุณสามารถดูคูปองได้ในเมนู "บัญชีของฉัน"
+            </div>
+        <?php endif; ?>
+
         <?php foreach($campaigns as $campaign) : ?>
             <div style="padding: 20px; margin-top: 30px; border: 1px solid #ddd; border-radius: 20px;">
                 <h3 style="margin-top:0;">🎫 <?=$campaign->name;?></h3>
                 <div class="coupon-container">
                     <?php
                     $sql = $wpdb->prepare(
-                        "SELECT coupon.* 
-                        FROM {$wpdb->prefix}onsite_coupon AS coupon
-                        INNER JOIN {$wpdb->prefix}onsite_campaign AS campaign 
-                            ON coupon.campaign_id = campaign.id
-                        WHERE coupon.campaign_id = %d 
-                        AND coupon.user_id IS NULL 
-                        AND %s BETWEEN campaign.start_date AND campaign.end_date",
-                        $campaign->id,
+                        "SELECT discount,coupon_condition FROM {$wpdb->prefix}onsite_coupon WHERE user_id IS NULL 
+                        GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
                         $current_time
                     );
 
@@ -485,8 +606,7 @@ add_shortcode('evoucher_page', function() {
                                             <strong>ลด <?=$coupon->discount?></strong><br>
                                             <small><?=$coupon->coupon_condition?></small>
                                         </p>
-                                        <!-- ใช้ URL ตาม Rewrite Rule ที่เราทำไว้ตอนแรก -->
-                                        <button class="btn-pick" onclick="window.location.href='/e-voucher/pick/<?=$coupon->code?>'">เก็บคูปองนี้</button>
+                                        <button class="btn-pick" <?php if($already_got_coupon > 0) { echo "disabled"; } ?> onclick="window.location.href='/e-voucher/pick/<?=$coupon->discount?>/<?=$coupon->coupon_condition?>/<?=$campaign->id;?>'">เก็บคูปองนี้</button>
                                     </div>
                                 </div>
                             </div>
@@ -538,6 +658,25 @@ function my_onsite_coupons_table() {
 </style>
 
 <h2>🎫 คูปองส่วนลดพิเศษสำหรับใช้งานหน้าร้าน</h2>
+<?php
+if(isset($_GET['status'])) {
+    if($_GET['status'] == 'coupon_converted_to_website') {
+    ?>
+        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+            ✅ เปลี่ยนคูปองเป็นคูปองส่วนลดสำหรับเว็บไซต์แล้ว !
+        </div>
+    <?php
+    }
+
+    if($_GET['status'] == 'coupon_converted_to_onsite') {
+    ?>
+        <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+            ✅ เปลี่ยนคูปองเป็นคูปองส่วนลดสำหรับหน้าร้านแล้ว !
+        </div>
+    <?php
+    }
+}
+?>
 <div style="overflow: auto;">
     <table class="wp-list-table widefat fixed striped" style="white-space: nowrap;">
         <thead>
@@ -557,11 +696,41 @@ function my_onsite_coupons_table() {
             <tr>
                 <td><strong><?=$my_onsite_coupon->discount;?></strong></td>
                 <td><?=$my_onsite_coupon->coupon_condition;?></td>
-                <td><button class="button button-small" style="
-                padding: 5px 20px;
-                font-size: 14px;
-                line-height: 20px;"
-                onclick="showCoupon('<?=$my_onsite_coupon->code;?>', '<?=$my_onsite_coupon->discount;?>', '<?=$my_onsite_coupon->coupon_condition;?>')">ใช้คูปอง</button></td>
+                <td style="display: flex;">
+                    <?php
+                    $real_coupon_id = $wpdb->get_var($wpdb->prepare(
+                        "SELECT ID FROM {$wpdb->posts} WHERE post_title = %s AND post_type = 'shop_coupon' AND post_status = 'publish' LIMIT 1",
+                        $my_onsite_coupon->code
+                    ));
+                    if(!$real_coupon_id) {
+                    ?>
+                    <button class="button button-small" style="
+                    padding: 5px 20px;
+                    font-size: 14px;
+                    line-height: 20px;"
+                    onclick="showCoupon('<?=$my_onsite_coupon->code;?>', '<?=$my_onsite_coupon->discount;?>', '<?=$my_onsite_coupon->coupon_condition;?>')">ใช้คูปองหน้าร้าน</button>
+                    <button class="button button-small" style="
+                    padding: 5px 20px;
+                    font-size: 14px;
+                    line-height: 20px;
+                    margin: 0 0 0 10px;
+                    "
+                    onclick="changeToWooCommerceCoupon('<?=$my_onsite_coupon->code;?>')">เปลี่ยนเป็นคูปองในเว็บไซต์</button>
+                    <?php
+                    } else {
+                    ?>
+                    <code><?=$my_onsite_coupon->code;?></code>
+                    <button class="button button-small" style="
+                    padding: 5px 20px;
+                    font-size: 14px;
+                    line-height: 20px;
+                    margin: 0 0 0 10px;
+                    "
+                    onclick="changeToOnsiteCoupon('<?=$my_onsite_coupon->code;?>')">เปลี่ยนเป็นคูปองหน้าร้าน</button>
+                    <?php
+                    }
+                    ?>
+                </td>
             </tr>
             <?php
                     }
@@ -600,6 +769,131 @@ function my_onsite_coupons_table() {
     function hideCoupon() {
         document.getElementById('couponBox').style.display = "none";
     }
+    function changeToWooCommerceCoupon(code) {
+        window.location.href = window.location.pathname + '?convert_to_woocommerce_coupon=' + code;
+    }
+    function changeToOnsiteCoupon(code) {
+        window.location.href = window.location.pathname + '?convert_to_onsite_coupon=' + code;
+    }
 </script>
 <?php
+}
+add_action('wp_loaded', function() {
+    global $wpdb;
+    $coupon_table = "{$wpdb->prefix}onsite_coupon";
+    $user_id = get_current_user_id();
+
+    // --- ขาไป: สร้าง WooCommerce Coupon ---
+    if(isset($_GET['convert_to_woocommerce_coupon'])) {
+        $coupon_code = sanitize_text_field($_GET['convert_to_woocommerce_coupon']);
+
+        $selected_coupon = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $coupon_table WHERE code = %s", // ลองถอด user_id ออกก่อนเพื่อเช็คว่ามีโค้ดนี้ในระบบเราไหม
+            $coupon_code
+        ));
+
+        if ($selected_coupon) {
+            createWoocommerceCouponFromOnsiteCoupon(
+                $selected_coupon->code, 
+                $selected_coupon->discount_amount, 
+                $selected_coupon->minspend,
+                $user_id
+            );
+            wp_redirect(home_url('/my-account/?status=coupon_converted_to_website&code=' . $coupon_code));
+            exit;
+        }
+    }
+
+    if(isset($_GET['convert_to_onsite_coupon'])) {
+        $coupon_code = sanitize_text_field($_GET['convert_to_onsite_coupon']);
+
+        $selected_coupon = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $coupon_table WHERE code = %s", 
+            $coupon_code
+        ));
+
+        if ($selected_coupon) {
+            // สั่งฟังก์ชันลบที่เราเขียนไว้ (ตัวที่ใช้ $wpdb->query ลบดิบ)
+            createOnsiteCouponFromWoocommerceCoupon($selected_coupon->code);
+            
+            wp_redirect(home_url('/my-account/?status=coupon_converted_to_onsite&code=' . $coupon_code));
+            exit;
+        } else {
+            // ถ้าหาโค้ดนี้ไม่เจอในตาราง On-site เลย
+            wp_redirect(home_url('/my-account/?status=not_found&code=' . $coupon_code));
+            exit;
+        }
+    }
+});
+
+function createWoocommerceCouponFromOnsiteCoupon($coupon_code, $discount_amount, $minimum_amount, $user_id) {
+    if ( ! class_exists( 'WC_Coupon' ) ) return;
+
+    global $wpdb;
+
+    /**
+     * 1. ถอนรากถอนโคน: เช็คหา ID จากชื่อคูปองโดยตรงในฐานข้อมูล 
+     * (ไม่ใช้ฟังก์ชัน Woo เพราะบางทีมันติด Cache)
+     */
+    $existing_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT ID FROM $wpdb->posts WHERE post_name = %s LIMIT 1",
+        sanitize_title($coupon_code)
+    ));
+
+    if ($existing_id) {
+        // ถ้าเจอ "ซาก" คูปองเก่า (ไม่ว่าจะสถานะไหน) ให้ลบทิ้งถาวรทันที
+        wp_delete_post($existing_id, true); 
+    }
+
+    /**
+     * 2. เคลียร์ Cache ของ WooCommerce 
+     * เพื่อให้ระบบลืมไปเลยว่าเคยมีคูปองชื่อนี้อยู่
+     */
+    wp_cache_delete('coupon-id-' . $coupon_code, 'coupons');
+    delete_transient('wc_coupon_id_from_code_' . $coupon_code);
+
+    /**
+     * 3. สร้างใหม่แบบสดๆ (Fresh Start)
+     */
+    try {
+        $coupon = new WC_Coupon();
+        $coupon->set_code($coupon_code);
+        $coupon->set_discount_type('fixed_cart');
+        $coupon->set_amount((float)$discount_amount);
+        
+        $min = (float)$minimum_amount > 0 ? (float)$minimum_amount : 0;
+        $coupon->set_minimum_amount($min);
+        
+        $coupon->set_usage_limit(1);
+        $coupon->set_individual_use(true);
+        $coupon->set_description("สร้างจากคูปอง On-site โดย User ID: $user_id");
+        
+        // ตั้งวันหมดอายุ
+        $coupon->set_date_expires(date('Y-m-d', strtotime('+7 days')));
+        
+        $coupon->save();
+    } catch (Exception $e) {
+        // ถ้าผิดพลาดให้บันทึกลง Error Log ของ Server
+        error_log("Error creating coupon: " . $e->getMessage());
+    }
+}
+
+function createOnsiteCouponFromWoocommerceCoupon($coupon_code) {
+    global $wpdb;
+    // หา ID คูปองใน Woo
+    $coupon_id = $wpdb->get_var($wpdb->prepare(
+        "SELECT ID FROM $wpdb->posts WHERE post_title = %s AND post_type = 'shop_coupon' LIMIT 1",
+        $coupon_code
+    ));
+
+    delete_transient( 'wc_coupon_id_from_code_' . $coupon_code );
+    wp_cache_delete( 'coupon-id-' . $coupon_code, 'coupons' );
+
+    if ($coupon_id) {
+        // ลบด้วย SQL ตรงๆ ชัวร์ 100%
+        $wpdb->query($wpdb->prepare("DELETE FROM $wpdb->posts WHERE ID = %d", $coupon_id));
+        $wpdb->query($wpdb->prepare("DELETE FROM $wpdb->postmeta WHERE post_id = %d", $coupon_id));
+        return true;
+    }
+    return false;
 }
