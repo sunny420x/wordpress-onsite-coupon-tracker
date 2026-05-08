@@ -12,7 +12,7 @@ function onsite_coupon_tracker_menu()
     add_menu_page(
         'ระบบสร้างและติดตามการใช้งานคูปอง Onsite',    // Page title
         'คูปอง E-Voucher',                          // Menu title
-        'manage_options',                        // Capability required
+        'edit_posts',                        // Capability required
         'onsite_coupon_tracker',                             // Menu slug
         'onsite_coupon_tracker_page',            // Callback function to display page content
         'dashicons-buddicons-groups',                 // Icon URL or Dashicon class
@@ -127,21 +127,88 @@ function onsite_coupon_tracker_page() {
         exit;
     }
     ?>
-    <div class="wrapper" style="display: flex;">
-        <style>
-            .oct_campaigns_list a {
-                padding: 10px 20px;
-                font-size: 14px;
-                background: #f8f8f8;
-                color: #111;
-                transition: .2s ease-in-out;
-                width: 85%;
-                display: inline-block;
-                text-decoration: none;
+    <style>
+        .white-label-zone {
+            width: calc(100% + 20px);
+            height: auto;
+            background: #fff;
+            display: flex;
+            margin: 0 0 0 -20px;
+        }
+        .white-label-zone h1,p {
+            padding: 0 20px;
+        }
+        .oct_campaigns_list {
+            background: #f8f8f8; 
+            width: 350px;
+            height: max-content;
+        }
+        .oct_campaigns_list a {
+            padding: 15px 30px;
+            font-size: 14px;
+            background: #f5f5f5;
+            color: #111;
+            transition: .2s ease-in-out;
+            width: 100%;
+            height: auto;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .oct_campaigns_list a:hover {
+            background: #fff;
+        }
+        .oct_campaigns_list h2 {
+            margin: 0; 
+            padding: 10px; 
+            background: #009FE3;
+            color: #fff;
+        }
+        .container {
+            background: #fff; 
+            width: 1200px;
+        }
+        .container h1 {
+            display: block;
+            font-size: 18px;
+            padding: 14px 20px;
+            margin: 0 0 20px 0;
+            background: #555;
+            color: #fff;
+        }
+        .container p {
+            padding: 10px 0;
+            margin: 0;
+        }
+        a.menu-btn {
+            width: 100%; 
+            padding: 5px !important; 
+            font-size: 14px !important;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
             }
-        </style>
-        <div class="oct_campaigns_list" style="margin: 0 20px 0 0; background: #fff; padding: 20px; border-radius: 10px; width: 300px;">
-            <h2 style="margin-top: 0;">📚 รายการแคมเปญ <button class="button button-small" onclick="window.location.href='admin.php?page=onsite_coupon_tracker'" style="margin-left: 10px;">สร้างแคมเปญใหม่</button></h2>
+            .container {
+                width: 100%;
+            }
+            .container h1 {
+                color: #000;
+            }
+        }
+    </style>
+    <div class="white-label-zone no-print">
+        <span style="padding: 60px 10px 60px 40px;float: left;font-size: 60px;">🏷️</span>
+        <div style="padding: 20px 0;">
+            <h1>WordPress Onsite Coupon Manager</h1>
+            <p>ระบบสร้างแคมเปญพิเศษ จัดการคูปองหน้าร้านสำหรับแคมเปญ
+            <br>
+            <strong>Github Repository:</strong> <a href="https://github.com/sunny420x/wordpress-onsite-coupon-tracker" target="_blank">https://github.com/sunny420x/wordpress-onsite-coupon-tracker</a>
+            </p>
+        </div>
+    </div>
+    <div class="wrapper" style="display: flex;">
+        <div class="oct_campaigns_list no-print">
+            <h2>📚 รายการแคมเปญ <button class="button button-small" onclick="window.location.href='admin.php?page=onsite_coupon_tracker'" style="margin-left: 10px;">สร้างแคมเปญใหม่</button></h2>
             
             <?php
             $campaigns = $wpdb->get_results(
@@ -153,8 +220,12 @@ function onsite_coupon_tracker_page() {
             <?php
             }
             ?>
+            <br>
+            <br>
+            <h2>⚙️ ตั้งค่า</h2>
+            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&option=settings")?>">🛠️ ตั้งค่าระบบ</a>
         </div>
-        <div style="background: #fff; padding: 20px; border-radius: 10px; width: 70%;">
+        <div class="container">
             <?php
             if(isset($_GET['campaign']) && !isset($_GET['searchCoupon'])) {
                 $campaign = $wpdb->get_row($wpdb->prepare(
@@ -162,122 +233,131 @@ function onsite_coupon_tracker_page() {
                     $_GET['campaign']
                 ));
             ?>
-            <h1 style="margin-top: 0;">✏️ แก้ไขแคมเปญ "<?=$campaign->name;?>"</h1>
-            <br>
-            <form action="admin.php?page=onsite_coupon_tracker" method="POST">
-                <input type="hidden" name="campaign_id" value="<?=$campaign->id;?>">
-                ชื่อแคมเปญ: <input type="text" name="campaign_name" value="<?=$campaign->name;?>" style="width: 500px;"><br><br>
-                วันที่เริ่มแจกคูปอง: <input type="date" name="campaign_start_date" id="" value="<?=explode(" ", $campaign->start_date)[0];?>">
-                เวลา: <input type="time" name="campaign_start_time" value="<?=explode(" ", $campaign->start_date)[1];?>">
-                <br><br>
-                วันที่หมดเวลาแจกคูปอง: <input type="date" name="campaign_end_date" value="<?=explode(" ", $campaign->end_date)[0];?>">
-                เวลา: <input type="time" name="campaign_end_time" value="<?=explode(" ", $campaign->end_date)[1];?>">
-                <br><br>
-                <input type="submit" value="บันทึกการเปลี่ยนแปลง" name="editCampaign" class="button button-primary">
-            </form>
-            
-            <h2>🏷️ คูปองของแคมเปญ</h2>
-            <a href="admin.php?page=onsite_coupon_tracker&campaign=<?=$campaign->id;?>&searchCoupon=all" class="button">🏷️ คูปองทั้งหมด</a>
-            <a href="admin.php?page=onsite_coupon_tracker&newCoupon" class="button">🎫 สร้างคูปองใหม่</a>
+            <h1>✏️ แก้ไขแคมเปญ "<?=$campaign->name;?>"</h1>
+            <div style="display: flex;">
+                <div style="padding: 0 10px 20px 20px;">
+                    <a href="admin.php?page=onsite_coupon_tracker&campaign=<?=$campaign->id;?>&searchCoupon=all" class="button menu-btn">🏷️ คูปองทั้งหมด</a><br><br>
+                    <a href="admin.php?page=onsite_coupon_tracker&newCoupon" class="button menu-btn">➕ สร้างคูปองใหม่</a><br><br>
+                    <a href="admin.php?page=onsite_coupon_tracker&option=report&campaign_id=<?=$campaign->id;?>" class="button menu-btn">🖨️ ออกรายงานแคมเปญ</a>
+                </div>
+                <div style="width: 100%; margin: 0 0 0 10px;">
+                    <div style="padding: 0px 25px 25px 25px;">
+                        <form action="admin.php?page=onsite_coupon_tracker" method="POST">
+                            <input type="hidden" name="campaign_id" value="<?=$campaign->id;?>">
+                            ชื่อแคมเปญ: <input type="text" name="campaign_name" value="<?=$campaign->name;?>" style="width: 500px;"><br><br>
+                            วันที่เริ่มแจกคูปอง: <input type="date" name="campaign_start_date" id="" value="<?=explode(" ", $campaign->start_date)[0];?>">
+                            เวลา: <input type="time" name="campaign_start_time" value="<?=explode(" ", $campaign->start_date)[1];?>">
+                            <br><br>
+                            วันที่หมดเวลาแจกคูปอง: <input type="date" name="campaign_end_date" value="<?=explode(" ", $campaign->end_date)[0];?>">
+                            เวลา: <input type="time" name="campaign_end_time" value="<?=explode(" ", $campaign->end_date)[1];?>">
+                            <br><br>
+                            <input type="submit" value="บันทึกการเปลี่ยนแปลง" name="editCampaign" class="button button-primary">
+                        </form>
+                    </div>
+                </div>
+            </div>
             <?php
             } elseif(isset($_GET['newCoupon'])) {
             ?>
-            <form action="admin.php?page=onsite_coupon_tracker" method="post">
-                <h2 style="margin-top: 0;">➕ เพิ่มคูปองใหม่</h2>
-                <br>
-                ลดจำนวน: <input type="text" name="coupon_discount" id="" required><br><br>
-                เงื่อนไข: <input type="text" name="coupon_condition" id="" style="width: 500px;" required><br><br>
-                แคมเปญ: <select name="campaign_id" id="">
-                    <?php
-                    $campaigns = $wpdb->get_results(
-                        "SELECT id,name FROM {$wpdb->prefix}onsite_campaign ORDER BY id DESC"
-                        );
-                        foreach($campaigns as $campaign) {
-                            ?>
-                    <option value="<?=$campaign->id;?>"><?=$campaign->name;?></option>
-                    <?php 
-                    }
-                    ?>
-                </select><br><br>
-                ลดจำนวน: <input type="number" name="discount_amount" id="" required> บาท<br><br>
-                ซื้อขั้นต่ำ: <input type="number" name="minspend" id="" required> บาท<br><br>
-                สร้างคูปองจำนวน: <input type="number" name="coupon_amount" id="" value="1" required><br><br>
-                <input type="submit" value="สร้างคูปอง" name="addCoupon" class="button">
-            </form>
+            <h1>➕ เพิ่มคูปองใหม่</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <form action="admin.php?page=onsite_coupon_tracker" method="post">
+                    ลดจำนวน (Text): <input type="text" name="coupon_discount" id="" required><br><br>
+                    เงื่อนไข: <input type="text" name="coupon_condition" id="" style="width: 500px;" required><br><br>
+                    แคมเปญ: <select name="campaign_id" id="">
+                        <?php
+                        $campaigns = $wpdb->get_results(
+                            "SELECT id,name FROM {$wpdb->prefix}onsite_campaign ORDER BY id DESC"
+                            );
+                            foreach($campaigns as $campaign) {
+                                ?>
+                        <option value="<?=$campaign->id;?>"><?=$campaign->name;?></option>
+                        <?php 
+                        }
+                        ?>
+                    </select><br><br>
+                    ลดจำนวน: <input type="number" name="discount_amount" id="" required> บาท<br><br>
+                    ซื้อขั้นต่ำ: <input type="number" name="minspend" id="" required> บาท<br><br>
+                    สร้างคูปองจำนวน: <input type="number" name="coupon_amount" id="" value="1" required><br><br>
+                    <input type="submit" value="สร้างคูปอง" name="addCoupon" class="button">
+                </form>
+            </div>
             <?php
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "all") {
                 $campaign_id = $_GET['campaign'];
             ?>
             <h1 style="margin-top: 0;">🎫 คูปอง</h1>
-            <p>ในหน้านี้คุณสามารถค้นหาคูปองที่มีอยู่ในแคมเปญได้ โดยการกรอกรหัสคูปองลงในช่องค้นหาและกด Enter</p>
-            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=".$campaign_id);?>">กลับไปที่แคมเปญ</a><br><br>
-            <input type="text" style="width: 100%;" onchange="searchCoupon(this.value, '<?=$campaign_id?>')" placeholder="ค้นหาคูปองด้วยรหัส" value="<?=$_GET['searchCoupon'];?>">
-            <script>
-                function searchCoupon(query, campaign_id) {
-                    window.location.href = `admin.php?page=onsite_coupon_tracker&searchCoupon=${query}&campaign=${campaign_id}`;
-                }
-            </script>
-            <?php
-            $stats = $wpdb->get_row("
-                SELECT 
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as used,
-                    SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as available,
-                    SUM(CASE WHEN user_id IS NOT NULL AND user_id != 0 THEN 1 ELSE 0 END) as taken
-                FROM {$wpdb->prefix}onsite_coupon
-            ", OBJECT);
-
-            $all_coupon          = $stats->total;
-            $used_coupon         = $stats->used;
-            $available_coupon    = $stats->available;
-            $already_taken_coupon = $stats->taken;
-            ?>
-
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0;">
-                <p style="margin: 0; font-size: 16px;">
-                    📊 <strong>ภาพรวมแคมเปญ:</strong> <br>
-                    ทั้งหมด: <strong><?= number_format($all_coupon); ?></strong> คูปอง | 
-                    ใช้งานแล้ว: <span style="color: #28a745;"><?= number_format($used_coupon); ?></span> | 
-                    เหลือพร้อมใช้: <span style="color: #007bff;"><?= number_format($available_coupon); ?></span> | 
-                    ถูกเก็บแล้ว: <span style="color: red;"><?= number_format($already_taken_coupon); ?></span>
-                </p>
-            </div>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>จำนวนคูปองในระบบ</th>
-                        <th>ลดจำนวน</th>
-                        <th>เงื่อนไข</th>
-                        <th>จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                        if($_GET['searchCoupon'] === "all") {
-                            $coupons = $wpdb->get_results($wpdb->prepare(
-                                "SELECT discount,coupon_condition,COUNT(*) as amount FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d GROUP BY discount, coupon_condition",
-                                $_GET['campaign']
-                            ));
+                <div style="padding: 0px 25px 25px 25px;">
+                    <p>ในหน้านี้คุณสามารถค้นหาคูปองที่มีอยู่ในแคมเปญได้ โดยการกรอกรหัสคูปองลงในช่องค้นหาและกด Enter</p>
+                    <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=".$campaign_id);?>">กลับไปที่แคมเปญ</a><br><br>
+                    <input type="text" style="width: 100%;" onchange="searchCoupon(this.value, '<?=$campaign_id?>')" placeholder="ค้นหาคูปองด้วยรหัส" value="<?=$_GET['searchCoupon'];?>">
+                    <script>
+                        function searchCoupon(query, campaign_id) {
+                            window.location.href = `admin.php?page=onsite_coupon_tracker&searchCoupon=${query}&campaign=${campaign_id}`;
                         }
-
-                        foreach($coupons as $coupon) {
-                    ?>
-                    <tr>
-                        <td><?=$coupon->amount;?> ใบ</td>
-                        <td><?=$coupon->discount;?></td>
-                        <td><?=$coupon->coupon_condition;?></td>
-                        <td><button onclick="searchCouponByCondition(<?= $_GET['campaign'];?>, '<?=$coupon->coupon_condition;?>', '<?=$coupon->discount;?>')" class="button">ดูคูปองทั้งหมด</button></td>
-                    </tr>
+                    </script>
                     <?php
-                        }
+                    $stats = $wpdb->get_row("
+                        SELECT 
+                            COUNT(*) as total,
+                            SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as used,
+                            SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as available,
+                            SUM(CASE WHEN user_id IS NOT NULL AND user_id != 0 THEN 1 ELSE 0 END) as taken
+                        FROM {$wpdb->prefix}onsite_coupon
+                    ", OBJECT);
+
+                    $all_coupon          = $stats->total;
+                    $used_coupon         = $stats->used;
+                    $available_coupon    = $stats->available;
+                    $already_taken_coupon = $stats->taken;
                     ?>
-                </tbody>
-            </table>
-            <script>
-                function searchCouponByCondition(campaign_id, condition, discount) {
-                    window.location.href=`admin.php?page=onsite_coupon_tracker&option=coupon-by-condition&condition=${condition}&discount=${discount}&campaign_id=${campaign_id}`
-                }
-            </script>
+
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin: 20px 0;">
+                        <p style="margin: 0; font-size: 16px;">
+                            📊 <strong>ภาพรวมแคมเปญ:</strong> <br>
+                            ทั้งหมด: <strong><?= number_format($all_coupon); ?></strong> คูปอง | 
+                            ใช้งานแล้ว: <span style="color: #28a745;"><?= number_format($used_coupon); ?></span> | 
+                            เหลือพร้อมใช้: <span style="color: #007bff;"><?= number_format($available_coupon); ?></span> | 
+                            ถูกเก็บแล้ว: <span style="color: red;"><?= number_format($already_taken_coupon); ?></span>
+                        </p>
+                    </div>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th>จำนวนคูปองในระบบ</th>
+                                <th>ลดจำนวน</th>
+                                <th>เงื่อนไข</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php
+                                if($_GET['searchCoupon'] === "all") {
+                                    $coupons = $wpdb->get_results($wpdb->prepare(
+                                        "SELECT discount,coupon_condition,COUNT(*) as amount FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d GROUP BY discount, coupon_condition",
+                                        $_GET['campaign']
+                                    ));
+                                }
+
+                                foreach($coupons as $coupon) {
+                            ?>
+                            <tr>
+                                <td><?=$coupon->amount;?> ใบ</td>
+                                <td><?=$coupon->discount;?></td>
+                                <td><?=$coupon->coupon_condition;?></td>
+                                <td><button onclick="searchCouponByCondition(<?= $_GET['campaign'];?>, '<?=$coupon->coupon_condition;?>', '<?=$coupon->discount;?>')" class="button">ดูคูปองทั้งหมด</button></td>
+                            </tr>
+                            <?php
+                                }
+                            ?>
+                        </tbody>
+                    </table>
+                    <script>
+                        function searchCouponByCondition(campaign_id, condition, discount) {
+                            window.location.href=`admin.php?page=onsite_coupon_tracker&option=coupon-by-condition&condition=${condition}&discount=${discount}&campaign_id=${campaign_id}`
+                        }
+                    </script>
+                </div>
             <?php
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] != "all") {
                 $campaign_id = $_GET['campaign'];
@@ -288,33 +368,35 @@ function onsite_coupon_tracker_page() {
                 ));
             ?>
             <h1 style="margin-top: 0;">🔍 ผลการค้นหา: <?=$_GET['searchCoupon'];?></h1>
-            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=all");?>">กลับไปที่แคมเปญ</a><br><br>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Code</th>
-                        <th>ลดจำนวน</th>
-                        <th>เงื่อนไข</th>
-                        <th>สถานะ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                        foreach($coupons as $coupon) {
-                    ?>
-                    <tr>
-                        <td><?=$coupon->id;?></td>
-                        <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
-                        <td><?=$coupon->discount;?></td>
-                        <td><?=$coupon->coupon_condition;?></td>
-                        <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
-                    </tr>
-                    <?php
-                        }
-                    ?>
-                </tbody>
-            </table>
+            <div style="padding: 0px 25px 25px 25px;">
+                <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=all");?>">กลับไปที่แคมเปญ</a><br><br>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Code</th>
+                            <th>ลดจำนวน</th>
+                            <th>เงื่อนไข</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                            foreach($coupons as $coupon) {
+                        ?>
+                        <tr>
+                            <td><?=$coupon->id;?></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><?=$coupon->discount;?></td>
+                            <td><?=$coupon->coupon_condition;?></td>
+                            <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
+                        </tr>
+                        <?php
+                            }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
             <?php
             } elseif(isset($_GET['option']) && $_GET['option'] == "coupon-by-condition") {
                 $campaign_id = $_GET['campaign_id'];
@@ -326,34 +408,36 @@ function onsite_coupon_tracker_page() {
 
             ?>
             <h1 style="margin-top: 0;">🔍 ผลการค้นหา</h1>
-            <p>รหัสแคมเปญ: <?=$campaign_id;?> ลด <?=$_GET['discount']?> <?=$_GET['condition']?></p>
-            <h3>พบจำนวนคูปองในระบบ <?=$wpdb->num_rows;?> ใบ</h3>
-            <table class="wp-list-table widefat fixed striped">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Code</th>
-                        <th>ลดจำนวน</th>
-                        <th>เงื่อนไข</th>
-                        <th>สถานะ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php
-                        foreach($coupons as $coupon) {
-                    ?>
-                    <tr>
-                        <td><?=$coupon->id;?></td>
-                        <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
-                        <td><?=$coupon->discount;?></td>
-                        <td><?=$coupon->coupon_condition;?></td>
-                        <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
-                    </tr>
-                    <?php
-                        }
-                    ?>
-                </tbody>
-            </table>
+            <div style="padding: 0px 25px 25px 25px;">
+                <p>รหัสแคมเปญ: <?=$campaign_id;?> ลด <?=$_GET['discount']?> <?=$_GET['condition']?></p>
+                <h3>พบจำนวนคูปองในระบบ <?=$wpdb->num_rows;?> ใบ</h3>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Code</th>
+                            <th>ลดจำนวน</th>
+                            <th>เงื่อนไข</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                            foreach($coupons as $coupon) {
+                        ?>
+                        <tr>
+                            <td><?=$coupon->id;?></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><?=$coupon->discount;?></td>
+                            <td><?=$coupon->coupon_condition;?></td>
+                            <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
+                        </tr>
+                        <?php
+                            }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
             <?php
             } elseif(isset($_GET['option']) && $_GET['option'] == "edit-coupon") {
                 $coupon = $wpdb->get_row($wpdb->prepare(
@@ -361,49 +445,127 @@ function onsite_coupon_tracker_page() {
                     $_GET['coupon']
                 ));
             ?>
-            <form action="admin.php?page=onsite_coupon_tracker" method="post">
-                <h2 style="margin-top: 0;">✏️ แก้ไขคูปอง "<?=$coupon->code;?>"</h2>
-                <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=".$coupon->campaign_id."&searchCoupon=all");?>">กลับไปที่คูปองในแคมเปญ</a>
-                <br>
-                <br>
-                <input type="hidden" name="coupon_id" value="<?=$coupon->id;?>">
-                รหัสคูปอง: <input type="text" name="coupon_code" value="<?=$coupon->code;?>"><br><br>
-                ลดจำนวน: <input type="text" name="coupon_discount" value="<?=$coupon->discount;?>"><br><br>
-                เงื่อนไข: <input type="text" name="coupon_condition" value="<?=$coupon->coupon_condition;?>" style="width: 500px;"><br><br>
-                แคมเปญ: <select name="campaign_id" id="">
+            <h1>✏️ แก้ไขคูปอง "<?=$coupon->code;?>"</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <form action="admin.php?page=onsite_coupon_tracker" method="post">
+                    <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=".$coupon->campaign_id."&searchCoupon=all");?>">กลับไปที่คูปองในแคมเปญ</a>
+                    <br>
+                    <br>
+                    <input type="hidden" name="coupon_id" value="<?=$coupon->id;?>">
+                    รหัสคูปอง: <input type="text" name="coupon_code" value="<?=$coupon->code;?>"><br><br>
+                    ลดจำนวน: <input type="text" name="coupon_discount" value="<?=$coupon->discount;?>"><br><br>
+                    เงื่อนไข: <input type="text" name="coupon_condition" value="<?=$coupon->coupon_condition;?>" style="width: 500px;"><br><br>
+                    แคมเปญ: <select name="campaign_id" id="">
+                        <?php
+                        $campaigns = $wpdb->get_results(
+                            "SELECT id,name FROM {$wpdb->prefix}onsite_campaign ORDER BY id DESC"
+                        );
+                        foreach($campaigns as $campaign) {
+                        ?>
+                        <option value="<?=$campaign->id;?>" <?php selected($coupon->campaign_id, $campaign->id) ?>><?=$campaign->name;?></option>
+                        <?php 
+                        }
+                        ?>
+                    </select><br><br>
+                    สถานะ: <select name="coupon_status" id="">
+                        <option value="1" <?php selected($coupon->status, 1) ?>>ใช้งานแล้ว</option>
+                        <option value="0" <?php selected($coupon->status, 0) ?>>ยังไม่ถูกใช้งาน</option>
+                    </select><br><br>
+                    เลขบิล: <input type="text" name="billing_id" value="<?=$coupon->billing_id;?>" style="width: 400px;"><br><br>
+                    <input type="submit" value="บันทึกการเปลี่ยนแปลง" name="editCoupon" class="button">
+                </form>
+            </div>
+            <?php
+            } elseif(isset($_GET['option']) && $_GET['option'] == "report" && $_GET['campaign_id']) {
+                $campaign_id = $_GET['campaign_id'];
+
+                $report = $wpdb->get_results($wpdb->prepare("
+                    SELECT
+                        onsite.code, 
+                        onsite.billing_id,
+                        onsite.discount_amount,
+                        onsite.coupon_condition,
+                        users.display_name,
+                        posts.post_date AS order_at,
+                        meta_total.meta_value AS totals,
+                        campaign.name 
+                    FROM {$wpdb->prefix}onsite_coupon AS onsite
+                    LEFT JOIN {$wpdb->users} AS users ON onsite.user_id = users.ID
+                    LEFT JOIN {$wpdb->posts} AS posts ON onsite.billing_id = posts.ID
+                    LEFT JOIN {$wpdb->prefix}postmeta AS meta_total ON onsite.billing_id = meta_total.post_id AND meta_total.meta_key = '_order_total'
+                    LEFT JOIN {$wpdb->prefix}onsite_campaign as campaign ON onsite.campaign_id = campaign.id 
+                    
+                    WHERE onsite.status = 1 AND onsite.campaign_id = %d 
+                    ORDER BY onsite.discount_amount DESC
+                ",  $campaign_id));
+                ?>
+                <h1>รายงานแคมเปญ: <?=$report[0]->name?></h1>
+                <div style="padding: 0px 25px 25px 25px;">
+                    <button class="button no-print" onclick="window.print()" style="margin: 0 0 20px 0; width: 100%;">🖨️ ออกรายงาน</button>
+                    <table class="wp-list-table widefat fixed striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Order ID</th>
+                                <th>ชื่อลูกค้า</th>
+                                <th>ยอดรวมสุทธิ</th>
+                                <th>ส่วนลดคูปอง</th>
+                                <th>เงื่อนไข</th>
+                                <th>ทำรายการเมื่อ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if ($report) : ?>
+                                <?php foreach($report as $row) : ?>
+                                <tr>
+                                    <td><a href="https://www.worldchemical.co.th/wp-admin/post.php?post=<?=$row->billing_id;?>&action=edit"><strong>#<?=$row->billing_id;?></strong></a></td>
+                                    <td><?=esc_html($row->display_name ?: '-- ไม่พบชื่อ --');?></td>
+                                    <td><?=wc_price($row->totals);?></td>
+                                    <td style="color: red;">-<?=wc_price($row->discount_amount);?> (<?=$row->code?>)</td>
+                                    <td><?=$row->coupon_condition;?></td>
+                                    <td><?=date('d/m/Y H:i', strtotime($row->order_at));?></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else : ?>
+                                <tr><td colspan="6" style="text-align:center;">ยังไม่มีข้อมูลการใช้คูปอง</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php
+            } elseif(isset($_GET['option']) && $_GET['option'] == "settings") {
+            ?>
+            <h1>ตั้งค่าระบบ</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <form action="options.php" method="post">
                     <?php
-                    $campaigns = $wpdb->get_results(
-                        "SELECT id,name FROM {$wpdb->prefix}onsite_campaign ORDER BY id DESC"
-                    );
-                    foreach($campaigns as $campaign) {
+                    settings_fields('onsite_coupn_tracker_settings_group');
                     ?>
-                    <option value="<?=$campaign->id;?>" <?php selected($coupon->campaign_id, $campaign->id) ?>><?=$campaign->name;?></option>
-                    <?php 
-                    }
-                    ?>
-                </select><br><br>
-                สถานะ: <select name="coupon_status" id="">
-                    <option value="1" <?php selected($coupon->status, 1) ?>>ใช้งานแล้ว</option>
-                    <option value="0" <?php selected($coupon->status, 0) ?>>ยังไม่ถูกใช้งาน</option>
-                </select><br><br>
-                เลขบิล: <input type="text" name="billing_id" value="<?=$coupon->billing_id;?>"><br><br>
-                <input type="submit" value="บันทึกการเปลี่ยนแปลง" name="editCoupon" class="button">
-            </form>
+                    <label for="onsite_coupn_tracker_enable">เปิดใช้งานระบบ Onsite Coupon: </label>
+                    <select name="onsite_coupn_tracker_enable" id="onsite_coupn_tracker_enable">
+                        <option value="yes" <?php selected(get_option('onsite_coupn_tracker_enable', 'yes'), 'yes') ?>>เปิดใช้งานระบบ</option>
+                        <option value="no" <?php selected(get_option('onsite_coupn_tracker_enable', 'yes'), 'no') ?>>ปิดใช้งานระบบ</option>
+                    </select>
+                    <br><br>
+                    <button type="submit" class="button">บันทึกการเปลี่ยนแปลง</button>
+                </form>
+            </div>
             <?php
             } else {
             ?>
-            <h1 style="margin-top: 0;">➕ สร้างแคมเปญใหม่</h1>
-            <br>
-            <form action="admin.php?page=onsite_coupon_tracker" method="POST">
-                ชื่อแคมเปญ: <input type="text" name="campaign_name" id="" required><br><br>
-                วันที่เริ่มแจกคูปอง: <input type="date" name="campaign_start_date" id="" required>
-                เวลา: <input type="time" name="campaign_start_time" id="" required>
-                <br><br>
-                วันที่หมดเวลาแจกคูปอง: <input type="date" name="campaign_end_date" id="" required>
-                เวลา: <input type="time" name="campaign_end_time" id="" required>
-                <br><br>
-                <input type="submit" value="สร้างแคมเปญ" name="addCampaign" class="button button-primary">
-            </form>
+            <h1>➕ สร้างแคมเปญใหม่</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <br>
+                <form action="admin.php?page=onsite_coupon_tracker" method="POST">
+                    ชื่อแคมเปญ: <input type="text" name="campaign_name" id="" required><br><br>
+                    วันที่เริ่มแจกคูปอง: <input type="date" name="campaign_start_date" id="" required>
+                    เวลา: <input type="time" name="campaign_start_time" id="" required>
+                    <br><br>
+                    วันที่หมดเวลาแจกคูปอง: <input type="date" name="campaign_end_date" id="" required>
+                    เวลา: <input type="time" name="campaign_end_time" id="" required>
+                    <br><br>
+                    <input type="submit" value="สร้างแคมเปญ" name="addCampaign" class="button button-primary">
+                </form>
+            </div>
             <?php
             }
             ?>
@@ -489,6 +651,8 @@ add_action('template_redirect', function() {
 });
 
 add_shortcode('evoucher_page', function() {
+    if(get_option('onsite_coupn_tracker_enable', 'yes') == "no") return;
+
     global $wpdb;
 
     if (!is_user_logged_in()) {
@@ -630,6 +794,9 @@ add_shortcode('evoucher_page', function() {
 add_action('woocommerce_before_my_account', 'my_onsite_coupons_table');
 
 function my_onsite_coupons_table() {
+    if(get_option('onsite_coupn_tracker_enable', 'yes') == "no") return;
+
+
     global $wpdb;
     $coupon_table = $wpdb->prefix . 'onsite_coupon';
     $my_onsite_coupons = $wpdb->get_results($wpdb->prepare(
