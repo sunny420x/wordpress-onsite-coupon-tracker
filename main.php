@@ -118,12 +118,14 @@ function onsite_coupon_tracker_page() {
         $minspend = sanitize_text_field($_POST['minspend']);
         $campaign_id = sanitize_text_field($_POST['campaign_id']);
         $coupon_status = (int) sanitize_text_field($_POST['coupon_status']);
+        $billing_id = sanitize_text_field($_POST['billing_id']);
 
-        $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_coupon SET code = %s, coupon_condition = %s, discount = %s, campaign_id = %d, status = %d, discount_amount = %d, minspend = %d WHERE id = %d",
-         $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $coupon_status, $discount_amount, $minspend, $coupon_id);
+        $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_coupon SET code = %s, coupon_condition = %s, discount = %s, campaign_id = %d, 
+            status = %d, discount_amount = %d, minspend = %d, billing_id = %s WHERE id = %d",
+            $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $coupon_status, $discount_amount, $minspend, $billing_id, $coupon_id);
         $wpdb->query($update_query);
 
-        wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker&coupon='.$coupon_id));
+        wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon='.$coupon_id));
         exit;
     }
     ?>
@@ -335,7 +337,8 @@ function onsite_coupon_tracker_page() {
                             <?php
                                 if($_GET['searchCoupon'] === "all") {
                                     $coupons = $wpdb->get_results($wpdb->prepare(
-                                        "SELECT discount,coupon_condition,COUNT(*) as amount FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d GROUP BY discount, coupon_condition",
+                                        "SELECT discount,coupon_condition,COUNT(*) as amount FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d 
+                                        GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
                                         $_GET['campaign']
                                     ));
                                 }
@@ -403,7 +406,7 @@ function onsite_coupon_tracker_page() {
                 $campaign_id = $_GET['campaign_id'];
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND coupon_condition = %s AND discount = %s",
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND coupon_condition = %s AND discount = %s ORDER BY discount_amount ASC",
                     $campaign_id, $_GET['condition'], $_GET['discount']
                 ));
 
@@ -518,12 +521,12 @@ function onsite_coupon_tracker_page() {
                             <?php if ($report) : ?>
                                 <?php foreach($report as $row) : ?>
                                 <tr>
-                                    <td><a href="https://www.worldchemical.co.th/wp-admin/post.php?post=<?=$row->billing_id;?>&action=edit"><strong>#<?=$row->billing_id;?></strong></a></td>
+                                    <td><a href="https://www.worldchemical.co.th/wp-admin/post.php?post=<?=$row->billing_id;?>&action=edit"><strong><?=$row->billing_id;?></strong></a></td>
                                     <td><?=esc_html($row->display_name ?: '-- ไม่พบชื่อ --');?></td>
                                     <td><?=wc_price($row->totals);?></td>
                                     <td style="color: red;">-<?=wc_price($row->discount_amount);?> (<?=$row->code?>)</td>
                                     <td><?=$row->coupon_condition;?></td>
-                                    <td><?=date('d/m/Y H:i', strtotime($row->order_at));?></td>
+                                    <td><?php if(date('d/m/Y H:i', strtotime($row->order_at)) != null) { echo $row->order_at; } else { echo "-"; }?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else : ?>
@@ -541,10 +544,16 @@ function onsite_coupon_tracker_page() {
                     <?php
                     settings_fields('onsite_coupn_tracker_settings_group');
                     ?>
-                    <label for="onsite_coupn_tracker_enable">เปิดใช้งานระบบ Onsite Coupon: </label>
-                    <select name="onsite_coupn_tracker_enable" id="onsite_coupn_tracker_enable">
-                        <option value="yes" <?php selected(get_option('onsite_coupn_tracker_enable', 'yes'), 'yes') ?>>เปิดใช้งานระบบ</option>
-                        <option value="no" <?php selected(get_option('onsite_coupn_tracker_enable', 'yes'), 'no') ?>>ปิดใช้งานระบบ</option>
+                    <label for="onsite_coupon_tracker_enable">เปิดใช้งานระบบ Onsite Coupon: </label>
+                    <select name="onsite_coupon_tracker_enable" id="onsite_coupon_tracker_enable">
+                        <option value="yes" <?php selected(get_option('onsite_coupon_tracker_enable', 'yes'), 'yes') ?>>เปิดใช้งานระบบ</option>
+                        <option value="no" <?php selected(get_option('onsite_coupon_tracker_enable', 'yes'), 'no') ?>>ปิดใช้งานระบบ</option>
+                    </select>
+                    <br><br>
+                    <label for="onsite_coupon_enable_individual_use">สามารถใช้ส่วนคูปองร่วมกับสิทธิพิเศษอื่น ๆ ได้: </label>
+                    <select name="onsite_coupon_enable_individual_use" id="onsite_coupon_enable_individual_use">
+                        <option value="no" <?php selected(get_option('onsite_coupon_enable_individual_use', 'no'), 'no') ?>>ใช่</option>
+                        <option value="yes" <?php selected(get_option('onsite_coupon_enable_individual_use', 'no'), 'yes') ?>>ไม่</option>
                     </select>
                     <br><br>
                     <button type="submit" class="button">บันทึกการเปลี่ยนแปลง</button>
@@ -605,7 +614,7 @@ add_action('admin_init', 'onsite_coupn_tracker_settings_init');
 
 function onsite_coupn_tracker_settings_init()
 {
-    register_setting('onsite_coupn_tracker_settings_group', 'onsite_coupn_tracker_enable');
+    register_setting('onsite_coupn_tracker_settings_group', 'onsite_coupon_tracker_enable');
 }
 
 add_action('init', function() {
@@ -678,7 +687,7 @@ add_action('template_redirect', function() {
 });
 
 add_shortcode('evoucher_page', function() {
-    if(get_option('onsite_coupn_tracker_enable', 'yes') == "no") return;
+    if(get_option('onsite_coupon_tracker_enable', 'yes') == "no") return;
 
     global $wpdb;
 
@@ -821,7 +830,7 @@ add_shortcode('evoucher_page', function() {
 add_action('woocommerce_before_my_account', 'my_onsite_coupons_table');
 
 function my_onsite_coupons_table() {
-    if(get_option('onsite_coupn_tracker_enable', 'yes') == "no") return;
+    if(get_option('onsite_coupon_tracker_enable', 'yes') == "no") return;
 
 
     global $wpdb;
@@ -1071,7 +1080,14 @@ function createWoocommerceCouponFromOnsiteCoupon($coupon_code, $discount_amount,
         
         $coupon->set_usage_limit(1);
         $coupon->set_usage_limit_per_user(1);
-        $coupon->set_individual_use(false);
+
+        if(get_option('onsite_coupon_enable_individual_use', 'no') == "yes") {
+            $individual_use = true;
+        } else {
+            $individual_use = false;
+        }
+
+        $coupon->set_individual_use($individual_use);
         $coupon->set_description("On-site Update: User ID $user_id");
         $coupon->set_date_expires(date('Y-m-d', strtotime('+7 days')));
         
