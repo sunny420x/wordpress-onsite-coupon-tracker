@@ -138,12 +138,12 @@ function onsite_coupon_tracker_page() {
         .white-label-zone h1,p {
             padding: 0 20px;
         }
-        .oct_campaigns_list {
+        .campaigns_list {
             background: #f8f8f8; 
             width: 350px;
             height: max-content;
         }
-        .oct_campaigns_list a {
+        .campaigns_list a {
             padding: 15px 30px;
             font-size: 14px;
             background: #f5f5f5;
@@ -154,10 +154,10 @@ function onsite_coupon_tracker_page() {
             display: inline-block;
             text-decoration: none;
         }
-        .oct_campaigns_list a:hover {
+        .campaigns_list a:hover {
             background: #fff;
         }
-        .oct_campaigns_list h2 {
+        .campaigns_list h2 {
             margin: 0; 
             padding: 10px; 
             background: #009FE3;
@@ -207,8 +207,8 @@ function onsite_coupon_tracker_page() {
         </div>
     </div>
     <div class="wrapper" style="display: flex;">
-        <div class="oct_campaigns_list no-print">
-            <h2>📚 รายการแคมเปญ <button class="button button-small" onclick="window.location.href='admin.php?page=onsite_coupon_tracker'" style="margin-left: 10px;">สร้างแคมเปญใหม่</button></h2>
+        <div class="campaigns_list no-print">
+            <h2>📚 รายการแคมเปญ <button class="button button-small" onclick="window.location.href='admin.php?page=onsite_coupon_tracker&option=newCampaign'" style="margin-left: 10px;">สร้างแคมเปญใหม่</button></h2>
             
             <?php
             $campaigns = $wpdb->get_results(
@@ -223,6 +223,7 @@ function onsite_coupon_tracker_page() {
             <br>
             <br>
             <h2>⚙️ ตั้งค่า</h2>
+            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker")?>">📖 คู่มือการใช้งานระบบ</a>
             <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&option=settings")?>">🛠️ ตั้งค่าระบบ</a>
         </div>
         <div class="container">
@@ -550,13 +551,12 @@ function onsite_coupon_tracker_page() {
                 </form>
             </div>
             <?php
-            } else {
+            } elseif(isset($_GET['option']) && $_GET['option'] == "newCampaign") {
             ?>
             <h1>➕ สร้างแคมเปญใหม่</h1>
             <div style="padding: 0px 25px 25px 25px;">
-                <br>
                 <form action="admin.php?page=onsite_coupon_tracker" method="POST">
-                    ชื่อแคมเปญ: <input type="text" name="campaign_name" id="" required><br><br>
+                    ชื่อแคมเปญ: <input type="text" name="campaign_name" id="" required style="width: 500px;"><br><br>
                     วันที่เริ่มแจกคูปอง: <input type="date" name="campaign_start_date" id="" required>
                     เวลา: <input type="time" name="campaign_start_time" id="" required>
                     <br><br>
@@ -565,6 +565,33 @@ function onsite_coupon_tracker_page() {
                     <br><br>
                     <input type="submit" value="สร้างแคมเปญ" name="addCampaign" class="button button-primary">
                 </form>
+            </div>
+            <?php
+            } else {
+            ?>
+            <h1>🎉 ยินดีต้อนรับสู่ระบบ WordPress Onsite Coupon Manager !!!</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <h2>ระบบนี้คืออะไร ?</h2>
+                <p>ระบบ WordPress Onsite Coupon Manager คือระบบที่ออกแบบมาเพื่ออำนวยความสะดวกในการสร้างคูปองหน้าร้านสำหรับแคมเปญหรือกิจกรรมต่าง ๆ 
+                    ช่วยให้จัดการคูปองได้ง่ายมากขึ้นสำหรับทั้งหน้าร้าน ผู้ออกแบบแคมเปญ และผู้จัดการ โดยระบบสามารถสร้างแคมเปญใหม่และสร้างคูปองส่วนลดภายในแคมเปญนั้น ๆ ได้</p>
+                <h2>ระบบนี้ทำงานอย่างไร ?</h2>
+                <p>คูปองทั้งหมดในแคมเปญจะแสดงก็ต่อเมื่อเวลาปัจจุบันอยู่ในช่วงระยะเวลา "แจกคูปอง" ตามที่ได้กำหนดไว้ในแคมเปญ เมื่อลูกค้าเก็บคูปอง คูปองจะถูกนำไปจัดเก็บและสามารถเข้าดูได้จากเมนู "บัญชีของฉัน" หรือที่
+                    URL: <a href="/my-account" target="_blank">/my-account/</a>
+                </p>
+                <p>คูปองที่ลูกค้าเก็บสามารถใช้งานได้ทั้งการซื้อสินค้าหน้าร้านและบนเว็บไซต์ โดยหากลูกค้าต้องการใช้คูปองในการซื้อสินค้าบนเว็บไซต์จะต้องคลิกปุ่ม "เปลี่ยนเป็นคูปองในเว็บไซต์" ก่อน และนำโค้ดส่วนลดไปใช้เป็นคูปองในการลดราคาสินค้า</p>
+                <h2>วิธีการใช้งานสำหรับพนักงานหน้าร้านเมื่อลูกค้าใช้โค้ด</h2>
+                <p>เมื่อลูกค้าแสดงโค้ดส่วนลดในการลดค่าสินค้าหน้าร้าน 
+                    1. พนักงานหน้าร้านจำเป็นต้องไปที่เมนู "รายการแคมเปญ" และคลิกเลือกแคมเปญปัจจุบันที่ดำเนินการอยู่<br>
+                    2. คลิก "คูปองทั้งหมด" และพิมพ์รหัสคูปองลงในช่องค้นหา<br>
+                    3. เมื่อพบคูปองที่มีรหัสตรงกันให้ปรับสถานะเป็น "ใช้งานแล้ว" และกรอกเลขบิลของลูกค้าเพื่อให้สามารถติดตามภายหลังได้
+                </p>
+                <hr>
+                <h2>สำหรับนักพัฒนาเว็บไซต์ - For Web Developer</h2>
+                <p>หากคุณคือนักพัฒนาเว็บไซต์ที่กำลังใช้งานระบบนี้ โปรดทำให้แน่ใจว่าคุณติดตั้งระบบนี้ถูกต้อง: </p>
+                <h3>วิธีติดตั้งปลั้กอิน</h3>
+                <p>ไปที่ /wp-admin/plugin-install.php และอัปโหลดไฟล์ zip ของปลั้กอิน จากนั้นสามารถ Activate แล้วเริ่มใช้งานปลั้กอินจากเมนูได้เลย !</p>
+                <h3>การใช้งาน</h3>
+                <p>นำ ShortCode [evoucher_page] ไปวางในหน้าที่ต้องการให้แสดงจุดเก็บคูปอง และสร้างแคมเปญใหม่ได้เลย !</p>
             </div>
             <?php
             }
