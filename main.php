@@ -542,7 +542,7 @@ function onsite_coupon_tracker_page() {
             <div style="padding: 0px 25px 25px 25px;">
                 <form action="options.php" method="post">
                     <?php
-                    settings_fields('onsite_coupn_tracker_settings_group');
+                    settings_fields('onsite_coupon_tracker_settings_group');
                     ?>
                     <label for="onsite_coupon_tracker_enable">เปิดใช้งานระบบ Onsite Coupon: </label>
                     <select name="onsite_coupon_tracker_enable" id="onsite_coupon_tracker_enable">
@@ -554,6 +554,12 @@ function onsite_coupon_tracker_page() {
                     <select name="onsite_coupon_enable_individual_use" id="onsite_coupon_enable_individual_use">
                         <option value="no" <?php selected(get_option('onsite_coupon_enable_individual_use', 'no'), 'no') ?>>ใช่</option>
                         <option value="yes" <?php selected(get_option('onsite_coupon_enable_individual_use', 'no'), 'yes') ?>>ไม่</option>
+                    </select>
+                    <br><br>
+                    <label for="onsite_coupon_enable_multiple_pick">สามารถเก็บคูปองได้มากกว่า 1 ใบ: </label>
+                    <select name="onsite_coupon_enable_multiple_pick" id="onsite_coupon_enable_multiple_pick">
+                        <option value="yes" <?php selected(get_option('onsite_coupon_enable_multiple_pick', 'no'), 'yes') ?>>ใช่</option>
+                        <option value="no" <?php selected(get_option('onsite_coupon_enable_multiple_pick', 'no'), 'no') ?>>ไม่</option>
                     </select>
                     <br><br>
                     <button type="submit" class="button">บันทึกการเปลี่ยนแปลง</button>
@@ -610,11 +616,13 @@ function onsite_coupon_tracker_page() {
     <?php
 }
 
-add_action('admin_init', 'onsite_coupn_tracker_settings_init');
+add_action('admin_init', 'onsite_coupon_tracker_settings_init');
 
-function onsite_coupn_tracker_settings_init()
+function onsite_coupon_tracker_settings_init()
 {
-    register_setting('onsite_coupn_tracker_settings_group', 'onsite_coupon_tracker_enable');
+    register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_tracker_enable');
+    register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_multiple_pick');
+    register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_individual_use');
 }
 
 add_action('init', function() {
@@ -643,11 +651,13 @@ add_action('template_redirect', function() {
         $user_id = get_current_user_id();
         $table_name = "{$wpdb->prefix}onsite_coupon";
 
-        $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE user_id = %d", $user_id));
+        if(get_option('onsite_coupon_enable_multiple_pick', 'no') == "no") {
+            $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE user_id = %d", $user_id));
 
-        if($already_got_coupon > 0) {
-            wp_redirect(home_url('/e-voucher/?status=you-already-picked'));
-            exit;
+            if($already_got_coupon > 0) {
+                wp_redirect(home_url('/e-voucher/?status=you-already-picked'));
+                exit;
+            }
         }
 
         // 1. ค้นหา ID คูปอง 1 ใบ ที่สเปกตรง และ user_id ยังเป็น NULL
