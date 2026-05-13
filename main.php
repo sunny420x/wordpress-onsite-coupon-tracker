@@ -320,8 +320,8 @@ function onsite_coupon_tracker_page() {
                             📊 <strong>ภาพรวมแคมเปญ:</strong> <br>
                             ทั้งหมด: <strong><?= number_format($all_coupon); ?></strong> คูปอง | 
                             ใช้งานแล้ว: <span style="color: #28a745;"><?= number_format($used_coupon); ?></span> | 
-                            เหลือพร้อมใช้: <span style="color: #007bff;"><?= number_format($available_coupon); ?></span> | 
-                            ถูกเก็บแล้ว: <span style="color: red;"><?= number_format($already_taken_coupon); ?></span>
+                            เหลือพร้อมใช้: <a href='<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=available");?>' style="text-decoration: none;"><span style="color: #007bff;"><?= number_format($available_coupon); ?></span></a> | 
+                            ถูกเก็บแล้ว: <a href='<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=picked");?>' style="text-decoration: none;"><span style="color: red;"><?= number_format($already_taken_coupon); ?></span></a>
                         </p>
                     </div>
                     <table class="wp-list-table widefat fixed striped">
@@ -363,7 +363,7 @@ function onsite_coupon_tracker_page() {
                     </script>
                 </div>
             <?php
-            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] != "all") {
+            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] != "all" && $_GET['searchCoupon'] != "picked" && $_GET['searchCoupon'] != 'available') {
                 $campaign_id = $_GET['campaign'];
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
@@ -402,6 +402,86 @@ function onsite_coupon_tracker_page() {
                                 } else { 
                                 echo "<span style='color: red;'>ใช้งานแล้ว</span>"; 
                                 } ?></td>
+                        </tr>
+                        <?php
+                            }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php
+            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "picked") {
+                $campaign_id = $_GET['campaign'];
+
+                $coupons = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND user_id IS NOT NULL ORDER BY discount_amount ASC"
+                , $campaign_id));
+            ?>
+            <h1 style="margin-top: 0;">🎉 คูปองที่ถูกเก็บแล้ว</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=all");?>">กลับไปที่แคมเปญ</a><br><br>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Code</th>
+                            <th>ลดจำนวน</th>
+                            <th>เงื่อนไข</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                            foreach($coupons as $coupon) {
+                        ?>
+                        <tr>
+                            <td><?=$coupon->id;?></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><?=$coupon->discount;?></td>
+                            <td><?=$coupon->coupon_condition;?></td>
+                            <td>
+                                <span style='color: red;'>ถูกเก็บแล้ว โดย: <a href="/wp-admin/user-edit.php?user_id=<?=$coupon->user_id?>&wp_http_referer=%2Fwp-admin%2Fusers.php" target="_blank"><?=$coupon->user_id?></a></span>
+                                | <?php if($coupon->status == 0) {
+                                echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; 
+                                } else { 
+                                echo "<span style='color: red;'>ใช้งานแล้ว</span>"; 
+                                } ?></td>
+                        </tr>
+                        <?php
+                            }
+                        ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php
+            } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "available") {
+                $campaign_id = $_GET['campaign'];
+
+                $coupons = $wpdb->get_results($wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND user_id IS NULL ORDER BY discount_amount ASC"
+                , $campaign_id));
+            ?>
+            <h1 style="margin-top: 0;">✅ คูปองที่ยังว่าง</h1>
+            <div style="padding: 0px 25px 25px 25px;">
+                <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&campaign=$campaign_id&searchCoupon=all");?>">กลับไปที่แคมเปญ</a><br><br>
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Code</th>
+                            <th>ลดจำนวน</th>
+                            <th>เงื่อนไข</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                            foreach($coupons as $coupon) {
+                        ?>
+                        <tr>
+                            <td><?=$coupon->id;?></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><?=$coupon->discount;?></td>
+                            <td><?=$coupon->coupon_condition;?></td>
                         </tr>
                         <?php
                             }
