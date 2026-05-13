@@ -393,7 +393,15 @@ function onsite_coupon_tracker_page() {
                             <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
-                            <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
+                            <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else {
+                            ?>
+                                <span style='color: red;'>ถูกเก็บแล้ว โดย: <a href="/wp-admin/user-edit.php?user_id=<?=$coupon->user_id?>&wp_http_referer=%2Fwp-admin%2Fusers.php" target="_blank"><?=$coupon->user_id?></a></span>
+                            <?php
+                            } ?> | <?php if($coupon->status == 0) {
+                                echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; 
+                                } else { 
+                                echo "<span style='color: red;'>ใช้งานแล้ว</span>"; 
+                                } ?></td>
                         </tr>
                         <?php
                             }
@@ -434,7 +442,9 @@ function onsite_coupon_tracker_page() {
                             <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
-                            <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else { echo "<span style='color: red;'>ถูกเก็บแล้ว</span>"; } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
+                            <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else {                             ?>
+                                <span style='color: red;'>ถูกเก็บแล้ว โดย: <a href="/wp-admin/user-edit.php?user_id=<?=$coupon->user_id?>&wp_http_referer=%2Fwp-admin%2Fusers.php" target="_blank"><?=$coupon->user_id?></a></span>
+                            <?php } ?> | <?php if($coupon->status == 0) {echo "<span style='color: green;'>ยังไม่ถูกใช้งาน</span>"; } else { echo "<span style='color: red;'>ใช้งานแล้ว</span>"; } ?></td>
                         </tr>
                         <?php
                             }
