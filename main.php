@@ -820,7 +820,7 @@ add_shortcode('evoucher_page', function() {
                                             <strong>ลด <?=$coupon->discount?></strong><br>
                                             <small><?=$coupon->coupon_condition?></small>
                                         </p>
-                                        <button class="btn-pick" <?php if($already_got_coupon > 0) { echo "disabled"; } ?> onclick="window.location.href='/e-voucher/pick/<?=$coupon->discount?>/<?=$coupon->coupon_condition?>/<?=$campaign->id;?>'">เก็บคูปองนี้</button>
+                                        <button class="btn-pick" <?php if($already_got_coupon > 0) { echo "disabled"; } ?> onclick="pickBtn('/e-voucher/pick/<?=$coupon->discount?>/<?=$coupon->coupon_condition?>/<?=$campaign->id;?>')">เก็บคูปองนี้</button>
                                     </div>
                                 </div>
                             </div>
@@ -831,6 +831,15 @@ add_shortcode('evoucher_page', function() {
                 </div>
             </div>
         <?php endforeach; ?>
+        <script>
+            function pickBtn(url) {
+                const allBtn = document.getElementsByClassName('btn-pick');
+                for(i = 0; i < allBtn.length; i++) {
+                    allBtn[i].disabled = true;
+                }
+                window.location.href = url;
+            }
+        </script>
     </div>
 
     <?php
