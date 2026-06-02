@@ -22,6 +22,18 @@ function onsite_coupon_tracker_menu()
 
 add_action('admin_menu', 'onsite_coupon_tracker_menu');
 
+function coupon_tracker_enqueue_assets()
+{
+    wp_enqueue_style(
+        'coupon-tracker-style',
+        plugins_url('/css/style.css', __FILE__),
+        array(),
+        time(),
+        'all'
+    );
+}
+add_action('wp_enqueue_scripts', 'coupon_tracker_enqueue_assets');
+
 register_activation_hook( __FILE__, 'onsite_couple_plugin_install' );
 
 function onsite_couple_plugin_install() {
@@ -300,14 +312,14 @@ function onsite_coupon_tracker_page() {
                         }
                     </script>
                     <?php
-                    $stats = $wpdb->get_row("
+                    $stats = $wpdb->get_row($wpdb->prepare("
                         SELECT 
                             COUNT(*) as total,
                             SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as used,
                             SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as available,
                             SUM(CASE WHEN user_id IS NOT NULL AND user_id != 0 THEN 1 ELSE 0 END) as taken
-                        FROM {$wpdb->prefix}onsite_coupon
-                    ", OBJECT);
+                        FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d
+                    ", $campaign_id), OBJECT);
 
                     $all_coupon          = $stats->total;
                     $used_coupon         = $stats->used;
@@ -652,6 +664,12 @@ function onsite_coupon_tracker_page() {
                         <option value="no" <?php selected(get_option('onsite_coupon_enable_multiple_pick', 'no'), 'no') ?>>ไม่</option>
                     </select>
                     <br><br>
+                    <label for="onsite_coupon_tracker_enable">ใช้งานได้เฉพาะลูกค้าที่เข้าสู่ระบบแล้วเท่านั้น: </label>
+                    <select name="onsite_coupon_tracker_only_login_user" id="onsite_coupon_tracker_only_login_user">
+                        <option value="yes" <?php selected(get_option('onsite_coupon_tracker_only_login_user', 'yes'), 'yes') ?>>เปิดใช้งานระบบ</option>
+                        <option value="no" <?php selected(get_option('onsite_coupon_tracker_only_login_user', 'yes'), 'no') ?>>ปิดใช้งานระบบ</option>
+                    </select>
+                    <br><br>
                     <button type="submit" class="button">บันทึกการเปลี่ยนแปลง</button>
                 </form>
             </div>
@@ -713,6 +731,7 @@ function onsite_coupon_tracker_settings_init()
     register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_tracker_enable');
     register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_multiple_pick');
     register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_individual_use');
+    register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_tracker_only_login_user');
 }
 
 add_action('init', function() {
@@ -733,56 +752,59 @@ add_action('template_redirect', function() {
     
     if ($discount && $condition && $campaign_id) {
         global $wpdb;
-        if (!is_user_logged_in()) {
-            wp_redirect(wp_login_url(home_url('/e-voucher/'))); 
-            exit;
-        }
 
-        $user_id = get_current_user_id();
-        $table_name = "{$wpdb->prefix}onsite_coupon";
-
-        if(get_option('onsite_coupon_enable_multiple_pick', 'no') == "no") {
-            $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE user_id = %d", $user_id));
-
-            if($already_got_coupon > 0) {
-                wp_redirect(home_url('/e-voucher/?status=you-already-picked'));
+        if(get_option("onsite_coupon_tracker_only_login_user") == "yes") {
+            if (!is_user_logged_in()) {
+                wp_redirect(wp_login_url(home_url('/e-voucher/'))); 
                 exit;
             }
-        }
 
-        // 1. ค้นหา ID คูปอง 1 ใบ ที่สเปกตรง และ user_id ยังเป็น NULL
-        $coupon_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $table_name 
-             WHERE discount = %s 
-             AND coupon_condition = %s 
-             AND campaign_id = %d 
-             AND user_id IS NULL 
-             LIMIT 1",
-            $discount,
-            $condition,
-            $campaign_id,
-        ));
+            $user_id = get_current_user_id();
+            $table_name = "{$wpdb->prefix}onsite_coupon";
 
-        if ($coupon_id) {
-            $updated = $wpdb->update(
-                $table_name,
-                array('user_id' => $user_id),
-                array('id' => $coupon_id, 'user_id' => null),
-                array('%d'),
-                array('%d', '%d')
-            );
+            if(get_option('onsite_coupon_enable_multiple_pick', 'no') == "no") {
+                $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name WHERE user_id = %d", $user_id));
 
-            if ($updated) {
-                wp_redirect(home_url('/e-voucher/?status=success'));
+                if($already_got_coupon > 0) {
+                    wp_redirect(home_url('/e-voucher/?status=you-already-picked'));
+                    exit;
+                }
+            }
+
+            // 1. ค้นหา ID คูปอง 1 ใบ ที่สเปกตรง และ user_id ยังเป็น NULL
+            $coupon_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $table_name 
+                WHERE discount = %s 
+                AND coupon_condition = %s 
+                AND campaign_id = %d 
+                AND user_id IS NULL 
+                LIMIT 1",
+                $discount,
+                $condition,
+                $campaign_id,
+            ));
+
+            if ($coupon_id) {
+                $updated = $wpdb->update(
+                    $table_name,
+                    array('user_id' => $user_id),
+                    array('id' => $coupon_id, 'user_id' => null),
+                    array('%d'),
+                    array('%d', '%d')
+                );
+
+                if ($updated) {
+                    wp_redirect(home_url('/e-voucher/?status=success'));
+                    exit;
+                }
+            } else {
+                wp_redirect(home_url('/e-voucher/?status=cannot_find_coupon'));
                 exit;
             }
-        } else {
-            wp_redirect(home_url('/e-voucher/?status=cannot_find_coupon'));
+
+            wp_redirect(home_url('/e-voucher/?status=out_of_stock'));
             exit;
         }
-
-        wp_redirect(home_url('/e-voucher/?status=out_of_stock'));
-        exit;
     }
 });
 
@@ -791,18 +813,20 @@ add_shortcode('evoucher_page', function() {
 
     global $wpdb;
 
-    if (!is_user_logged_in()) {
-        return '
-        <div style="text-align:center; padding: 50px; background:#fff; border-radius:10px;">
-            <h2 style="color:#333;">🎫 รับคูปองสุดพิเศษ</h2>
-            <p style="color:#666;">กรุณาเข้าสู่ระบบก่อน เพื่อรับสิทธิ์คูปองส่วนลด</p>
-            <br>
-            <a href="'. wp_login_url(get_permalink()) .'" class="button" style="background:#1D9DD8; color:#fff; padding:12px 30px; text-decoration:none; border-radius:5px;">เข้าสู่ระบบ</a>
-        </div>';
-    }
+    if(get_option("onsite_coupon_tracker_only_login_user") == "yes") {
+        if (!is_user_logged_in()) {
+            return '
+            <div style="text-align:center; padding: 50px; background:#fff; border-radius:10px;">
+                <h2 style="color:#333;">🎫 รับคูปองสุดพิเศษ</h2>
+                <p style="color:#666;">กรุณาเข้าสู่ระบบก่อน เพื่อรับสิทธิ์คูปองส่วนลด</p>
+                <br>
+                <a href="'. wp_login_url(get_permalink()) .'" class="button" style="background:#1D9DD8; color:#fff; padding:12px 30px; text-decoration:none; border-radius:5px;">เข้าสู่ระบบ</a>
+            </div>';
+        }
 
-    $user_id = get_current_user_id();
-    $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}onsite_coupon WHERE user_id = %d", $user_id));
+        $user_id = get_current_user_id();
+        $already_got_coupon = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$wpdb->prefix}onsite_coupon WHERE user_id = %d", $user_id));
+    }
 
     $current_time = current_time('mysql');
     $campaigns = $wpdb->get_results($wpdb->prepare(
@@ -817,64 +841,6 @@ add_shortcode('evoucher_page', function() {
 
     ob_start();
     ?>
-    <style>
-        .coupon-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .coupon {
-            padding: 20px;
-            background: #f8f8f8;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-        }
-        .coupon .holder {
-            display: flex;
-            gap: 15px;
-        }
-        .coupon span {
-            font-size: 32px;
-            font-weight: bold;
-            color: #1D9DD8;
-            display: flex;
-            align-items: center;
-            border-right: 1px solid #ccc;
-            padding-right: 15px;
-        }
-        .coupon p {
-            line-height: 1.4;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        .coupon .btn-pick {
-            width: 100%;
-            background: #1D9DD8;
-            color: white;
-            border: none;
-            padding: 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .coupon .btn-pick:disabled {
-            background: #ccc;
-        }
-        .coupon .btn-pick:disabled:hover {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        .coupon .btn-pick:hover { background: #157fb1; }
-
-        @media screen and (max-width: 1400px) { .coupon-container { grid-template-columns: 1fr 1fr 1fr; } }
-        @media screen and (max-width: 1200px) { .coupon-container { grid-template-columns: 1fr 1fr; } }
-        @media screen and (max-width: 768px) { .coupon-container { grid-template-columns: 1fr; } }
-
-        /* ซ่อนส่วนที่ไม่จำเป็น */
-        .elementor-menu-cart__container, .bwp-main .page-title { display: none !important; }
-    </style>
-
     <div class="evoucher-main-wrapper">
         <?php if (isset($_GET['status']) && $_GET['status'] == 'success') : ?>
             <div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
@@ -894,7 +860,7 @@ add_shortcode('evoucher_page', function() {
                 <div class="coupon-container">
                     <?php
                     $sql = $wpdb->prepare(
-                        "SELECT discount,coupon_condition FROM {$wpdb->prefix}onsite_coupon WHERE user_id IS NULL 
+                        "SELECT discount,coupon_condition,code FROM {$wpdb->prefix}onsite_coupon WHERE user_id IS NULL 
                         GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
                         $current_time
                     );
@@ -910,7 +876,17 @@ add_shortcode('evoucher_page', function() {
                                             <strong>ลด <?=$coupon->discount?></strong><br>
                                             <small><?=$coupon->coupon_condition?></small>
                                         </p>
+                                        <?php
+                                        if(get_option("onsite_coupon_tracker_only_login_user") == "yes") {
+                                        ?>
                                         <button class="btn-pick" <?php if($already_got_coupon > 0) { echo "disabled"; } ?> onclick="pickBtn('/e-voucher/pick/<?=$coupon->discount?>/<?=$coupon->coupon_condition?>/<?=$campaign->id;?>')">เก็บคูปองนี้</button>
+                                        <?php
+                                        } else {
+                                        ?>
+                                        <button class="btn-pick" onclick="showCoupon('<?=$coupon->code;?>','<?=$coupon->discount?>', '<?=$coupon->coupon_condition?>')">ใช้งานเลย!</button>
+                                        <?php
+                                        }
+                                        ?>
                                     </div>
                                 </div>
                             </div>
@@ -921,6 +897,27 @@ add_shortcode('evoucher_page', function() {
                 </div>
             </div>
         <?php endforeach; ?>
+
+        <!-- Coupon Box สำหรับโชว์โค้ด -->
+        <div id="couponBox">
+            <div style="background: #fff; border-radius: 20px; padding: 40px; width: 80%;">
+                <!-- <img src="" class="couponArtWork" alt="Onsite Coupon Art Work"> -->
+                <p style="font-size: 18px; font-weight: bold;">ลด <span id="couponDiscount"></span> <span id="couponCondition"></span></p>
+                <p style="font-size: 16px; margin-bobttom: 20px;">ยื่นรหัสนี้ให้พนักงานที่เคาน์เตอร์</p><span style="
+                width: 100%;
+                color: #222;
+                font-size: 48px;
+                font-weight: bold;
+                border: 2px dashed #333;
+                padding: 20px;
+                background: #EFEFEF;
+                display: block;
+                margin-bobttom: 20px;" id="couponBoxCode"></span>
+                <br>
+                <button class="button close-coupon-btn" onclick="hideCoupon()">ปิดหน้าจอนี้</button>
+                <button class="button go-to-cart-btn" id="toWebCart">ใช้ซื้อสินค้าหน้าเว็บ</button>
+            </div>
+        </div>
         <script>
             function pickBtn(url) {
                 const allBtn = document.getElementsByClassName('btn-pick');
@@ -928,6 +925,17 @@ add_shortcode('evoucher_page', function() {
                     allBtn[i].disabled = true;
                 }
                 window.location.href = url;
+            }
+
+            function showCoupon(code, discount, coupon_condition) {
+                document.getElementById('couponBox').style.display = "flex";
+                document.getElementById('couponBoxCode').innerText = code;
+                document.getElementById('couponDiscount').innerText = discount;
+                document.getElementById('couponCondition').innerText = coupon_condition;
+                document.getElementById('toWebCart').setAttribute('onclick', "window.location.href='/cart/?use_from_coupon_book="+code+"'");
+            }
+            function hideCoupon() {
+                document.getElementById('couponBox').style.display = "none";
             }
         </script>
     </div>
@@ -988,7 +996,7 @@ function my_onsite_coupons_table() {
         background: #EFEFEF;
         display: block;
         margin-bobttom: 20px;" id="couponBoxCode"></span>
-        <button class="button" onclick="hideCoupon()">ปิดหน้าจอนี้</button>
+        <button class="button" class="close-coupon-btn" onclick="hideCoupon()">ปิดหน้าจอนี้</button>
     </div>
 </div>
 
@@ -1302,3 +1310,142 @@ function mark_onsite_coupon_as_used($order_id) {
         }
     }
 } 
+
+add_action('woocommerce_after_cart_table', 'wp_cart_coupon_book');
+function wp_cart_coupon_book() {
+    //Return if required login user.
+    if(get_option("onsite_coupon_tracker_only_login_user") == "yes") {
+        return;
+    }
+
+    global $wpdb;
+    $current_time = current_time('mysql');
+    $campaigns = $wpdb->get_results($wpdb->prepare(
+        "SELECT id, name, start_date, end_date 
+        FROM {$wpdb->prefix}onsite_campaign 
+        WHERE start_date <= %s 
+        AND end_date >= %s 
+        ORDER BY id DESC",
+        $current_time, 
+        $current_time
+    ));
+
+    ob_start();
+
+    if(isset($_GET['use_from_coupon_book']) && !empty($_GET['use_from_coupon_book'])) {
+        if ( ! class_exists( 'WC_Coupon' ) ) return;
+        global $wpdb;
+        $coupon_code = sanitize_text_field($_GET['use_from_coupon_book']);
+
+        $onsite_status = $wpdb->get_var($wpdb->prepare(
+            "SELECT status FROM {$wpdb->prefix}onsite_coupon WHERE code = %s",
+            $coupon_code
+        ));
+
+        $discount_amount = $wpdb->get_var($wpdb->prepare(
+            "SELECT discount_amount FROM {$wpdb->prefix}onsite_coupon WHERE code = %s",
+            $coupon_code
+        ));
+
+        $minimum_amount = $wpdb->get_var($wpdb->prepare(
+            "SELECT minspend FROM {$wpdb->prefix}onsite_coupon WHERE code = %s",
+            $coupon_code
+        ));
+
+        if ($onsite_status == 1) return;
+
+        $existing_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT ID FROM $wpdb->posts WHERE post_title = %s AND post_type = 'shop_coupon' LIMIT 1",
+            $coupon_code
+        ));
+
+        try {
+            $coupon = $existing_id ? new WC_Coupon($existing_id) : new WC_Coupon();
+            
+            $coupon->set_code($coupon_code);
+            $coupon->set_status('publish'); // บังคับให้เป็น Publish เสมอ
+            $coupon->set_discount_type('fixed_cart');
+            $coupon->set_amount((float)$discount_amount);
+            
+            // ล้างประวัติการใช้งาน (เพื่อป้องกันบั๊กใช้ซ้ำไม่ได้)
+            $coupon->set_usage_count(0);
+            $coupon->set_used_by(array());
+            
+            $min = (float)$minimum_amount > 0 ? (float)$minimum_amount : 0;
+            $coupon->set_minimum_amount($min);
+            
+            $coupon->set_usage_limit(1);
+            $coupon->set_usage_limit_per_user(1);
+
+            if(get_option('onsite_coupon_enable_individual_use', 'no') == "yes") {
+                $individual_use = true;
+            } else {
+                $individual_use = false;
+            }
+
+            $coupon->set_individual_use($individual_use);
+            $coupon->set_date_expires(date('Y-m-d', strtotime('+7 days')));
+            
+            $coupon->save();
+
+            delete_transient('wc_coupon_id_from_code_' . $coupon_code);
+            wp_cache_delete('coupon-id-' . $coupon_code, 'coupons');
+            $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}wc_order_coupon_lookup WHERE coupon_code = %s", $coupon_code));
+
+            if ( WC()->cart ) {
+                // ลบคูปองแบบระบุชื่อ
+                WC()->cart->remove_coupon( $coupon_code );
+                WC()->cart->get_cart_from_session();
+                WC()->cart->calculate_totals();
+                // บังคับ Save Session ทันที
+                WC()->cart->set_session();
+                // ป้องกัน Cache ระดับ Object
+                wc_delete_shop_order_transients();
+            }
+            wp_redirect("/cart/?apply_coupon=$coupon_code");
+        } catch (Exception $e) {
+            error_log("Error in Smart Coupon Sync: " . $e->getMessage());
+        }  
+    }
+    
+    if(isset($_GET['apply_coupon']) && !empty($_GET['apply_coupon'])) {
+        $coupon_code = sanitize_text_field($_GET['apply_coupon']);
+        if ( ! WC()->cart->has_discount( $coupon_code ) ) {
+            WC()->cart->add_discount( $coupon_code );
+        }
+    }
+
+    foreach($campaigns as $campaign) : ?>
+        <div style="padding: 20px; margin-top: 30px; border: 1px solid #ddd;">
+            <h3 style="margin-top:0;">🎫 <?=$campaign->name;?></h3>
+            <div class="coupon-book-container">
+                <?php
+                $sql = $wpdb->prepare(
+                    "SELECT discount,coupon_condition,code FROM {$wpdb->prefix}onsite_coupon WHERE user_id IS NULL 
+                    GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
+                    $current_time
+                );
+
+                $coupons = $wpdb->get_results($sql);
+                if ($coupons) {
+                    foreach($coupons as $coupon) : ?>
+                        <div class="coupon">
+                            <div class="holder">
+                                <span><?=$coupon->discount?></span>
+                                <div style="flex:1;">
+                                    <p>
+                                        <strong>ลด <?=$coupon->discount?></strong><br>
+                                        <small><?=$coupon->coupon_condition?></small>
+                                    </p>
+                                </div>
+                                <a href="/cart/?use_from_coupon_book=<?=$coupon->code?>"><button class="btn-pick">ใช้งานเลย!</button></a>
+                            </div>
+                        </div>
+                    <?php endforeach;
+                }
+                ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
+<?php
+}

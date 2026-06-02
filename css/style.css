@@ -1,0 +1,136 @@
+.coupon-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.coupon-book-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.coupon {
+    padding: 20px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.coupon .holder {
+    display: flex;
+    gap: 15px;
+}
+
+.coupon span {
+    font-size: 32px;
+    font-weight: bold;
+    color: #1D9DD8;
+    display: flex;
+    align-items: center;
+    border-right: 1px solid #ccc;
+    padding-right: 15px;
+}
+
+.coupon p {
+    line-height: 1.4;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.coupon .btn-pick {
+    width: 100%;
+    background: #1D9DD8;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.coupon-book-container .coupon .btn-pick {
+    width: 100px;
+}
+
+.coupon .btn-pick:disabled {
+    background: #ccc;
+}
+
+.coupon .btn-pick:disabled:hover {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.coupon .btn-pick:hover {
+    background: #157fb1;
+}
+
+@media screen and (max-width: 1400px) {
+    .coupon-container {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+@media screen and (max-width: 1200px) {
+    .coupon-container {
+        grid-template-columns: 1fr 1fr;
+    }
+    .coupon-book-container {
+        grid-template-columns: 1fr;
+    }
+    .coupon-book-container .coupon .btn-pick {
+        width: 25%;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .coupon-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ซ่อนส่วนที่ไม่จำเป็น */
+
+.elementor-menu-cart__container,
+.bwp-main .page-title {
+    display: none !important;
+}
+
+
+/* Coupon Box สำหรับลูกค้าที่ไม่ได้เข้าสู่ระบบ */
+
+#couponBox {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    background: #242424;
+    z-index: 9999;
+    flex-direction: column;
+}
+
+.close-coupon-btn {
+    padding: 10px 20px;
+    background: #cc0000;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.go-to-cart-btn {
+    padding: 10px 20px;
+    background: #009FE3;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
