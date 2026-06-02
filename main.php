@@ -664,10 +664,16 @@ function onsite_coupon_tracker_page() {
                         <option value="no" <?php selected(get_option('onsite_coupon_enable_multiple_pick', 'no'), 'no') ?>>ไม่</option>
                     </select>
                     <br><br>
-                    <label for="onsite_coupon_tracker_enable">ใช้งานได้เฉพาะลูกค้าที่เข้าสู่ระบบแล้วเท่านั้น: </label>
+                    <label for="onsite_coupon_tracker_only_login_user">ใช้งานได้เฉพาะลูกค้าที่เข้าสู่ระบบแล้วเท่านั้น: </label>
                     <select name="onsite_coupon_tracker_only_login_user" id="onsite_coupon_tracker_only_login_user">
                         <option value="yes" <?php selected(get_option('onsite_coupon_tracker_only_login_user', 'yes'), 'yes') ?>>เปิดใช้งานระบบ</option>
                         <option value="no" <?php selected(get_option('onsite_coupon_tracker_only_login_user', 'yes'), 'no') ?>>ปิดใช้งานระบบ</option>
+                    </select>
+                    <br><br>
+                    <label for="onsite_coupon_enable_coupon_book">เปิดใช้งาน Conpon Book: </label>
+                    <select name="onsite_coupon_enable_coupon_book" id="onsite_coupon_enable_coupon_book">
+                        <option value="yes" <?php selected(get_option('onsite_coupon_enable_coupon_book', 'yes'), 'yes') ?>>เปิดใช้งานระบบ</option>
+                        <option value="no" <?php selected(get_option('onsite_coupon_enable_coupon_book', 'yes'), 'no') ?>>ปิดใช้งานระบบ</option>
                     </select>
                     <br><br>
                     <button type="submit" class="button">บันทึกการเปลี่ยนแปลง</button>
@@ -732,6 +738,7 @@ function onsite_coupon_tracker_settings_init()
     register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_multiple_pick');
     register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_individual_use');
     register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_tracker_only_login_user');
+    register_setting('onsite_coupon_tracker_settings_group', 'onsite_coupon_enable_coupon_book');
 }
 
 add_action('init', function() {
@@ -860,9 +867,13 @@ add_shortcode('evoucher_page', function() {
                 <div class="coupon-container">
                     <?php
                     $sql = $wpdb->prepare(
-                        "SELECT discount,coupon_condition,code FROM {$wpdb->prefix}onsite_coupon WHERE user_id IS NULL 
-                        GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
-                        $current_time
+                        "SELECT c.discount, c.coupon_condition, c.code 
+                        FROM {$wpdb->prefix}onsite_coupon c
+                        LEFT JOIN {$wpdb->prefix}posts p ON c.code = p.post_title AND p.post_type = 'shop_coupon'
+                        WHERE c.user_id IS NULL 
+                        AND p.ID IS NULL AND campaign_id = %d
+                        GROUP BY c.discount, c.coupon_condition 
+                        ORDER BY c.discount ASC", $campaign->id
                     );
 
                     $coupons = $wpdb->get_results($sql);
@@ -1320,17 +1331,20 @@ function wp_cart_coupon_book() {
 
     global $wpdb;
     $current_time = current_time('mysql');
-    $campaigns = $wpdb->get_results($wpdb->prepare(
-        "SELECT id, name, start_date, end_date 
-        FROM {$wpdb->prefix}onsite_campaign 
-        WHERE start_date <= %s 
-        AND end_date >= %s 
-        ORDER BY id DESC",
-        $current_time, 
-        $current_time
-    ));
 
-    ob_start();
+    if(get_option('onsite_coupon_enable_coupon_book') == "yes") {
+        $campaigns = $wpdb->get_results($wpdb->prepare(
+            "SELECT id, name, start_date, end_date 
+            FROM {$wpdb->prefix}onsite_campaign 
+            WHERE start_date <= %s 
+            AND end_date >= %s 
+            ORDER BY id DESC",
+            $current_time, 
+            $current_time
+        ));
+    
+        ob_start();
+    }
 
     if(isset($_GET['use_from_coupon_book']) && !empty($_GET['use_from_coupon_book'])) {
         if ( ! class_exists( 'WC_Coupon' ) ) return;
@@ -1409,11 +1423,15 @@ function wp_cart_coupon_book() {
     }
     
     if(isset($_GET['apply_coupon']) && !empty($_GET['apply_coupon'])) {
-        $coupon_code = sanitize_text_field($_GET['apply_coupon']);
-        if ( ! WC()->cart->has_discount( $coupon_code ) ) {
-            WC()->cart->add_discount( $coupon_code );
+        if ( count( WC()->cart->get_applied_coupons() ) == 0 ) {
+            $coupon_code = sanitize_text_field($_GET['apply_coupon']);
+            if ( ! WC()->cart->has_discount( $coupon_code ) ) {
+                WC()->cart->add_discount( $coupon_code );
+            }
         }
     }
+
+    if(get_option('onsite_coupon_enable_coupon_book') == "yes") {
 
     foreach($campaigns as $campaign) : ?>
         <div style="padding: 20px; margin-top: 30px; border: 1px solid #ddd;">
@@ -1421,9 +1439,13 @@ function wp_cart_coupon_book() {
             <div class="coupon-book-container">
                 <?php
                 $sql = $wpdb->prepare(
-                    "SELECT discount,coupon_condition,code FROM {$wpdb->prefix}onsite_coupon WHERE user_id IS NULL 
-                    GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
-                    $current_time
+                    "SELECT c.discount, c.coupon_condition, c.code 
+                    FROM {$wpdb->prefix}onsite_coupon c
+                    LEFT JOIN {$wpdb->prefix}posts p ON c.code = p.post_title AND p.post_type = 'shop_coupon'
+                    WHERE c.user_id IS NULL 
+                    AND p.ID IS NULL AND campaign_id = %d 
+                    GROUP BY c.discount, c.coupon_condition 
+                    ORDER BY c.discount ASC", $campaign->id
                 );
 
                 $coupons = $wpdb->get_results($sql);
@@ -1438,7 +1460,7 @@ function wp_cart_coupon_book() {
                                         <small><?=$coupon->coupon_condition?></small>
                                     </p>
                                 </div>
-                                <a href="/cart/?use_from_coupon_book=<?=$coupon->code?>"><button class="btn-pick">ใช้งานเลย!</button></a>
+                                <a href="/cart/?use_from_coupon_book=<?=$coupon->code?>" class="btn-pick">ใช้งานเลย!</a>
                             </div>
                         </div>
                     <?php endforeach;
@@ -1448,4 +1470,5 @@ function wp_cart_coupon_book() {
         </div>
     <?php endforeach; ?>
 <?php
+    }
 }

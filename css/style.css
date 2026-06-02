@@ -53,6 +53,8 @@
 
 .coupon-book-container .coupon .btn-pick {
     width: 100px;
+    height: max-content;
+    text-align: center;
 }
 
 .coupon .btn-pick:disabled {
