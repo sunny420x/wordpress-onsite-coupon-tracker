@@ -187,7 +187,7 @@ function onsite_coupon_tracker_page() {
         .container h1 {
             display: block;
             font-size: 18px;
-            padding: 14px 20px;
+            padding: 13px 20px;
             margin: 0 0 20px 0;
             background: #555;
             color: #fff;
