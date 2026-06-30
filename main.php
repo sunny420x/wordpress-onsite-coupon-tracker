@@ -491,12 +491,11 @@ function onsite_coupon_tracker_page() {
                 $campaign_id = $_GET['campaign'];
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
-                    "SELECT c.id, c.discount, c.coupon_condition, c.code 
-                    FROM wp9h_onsite_coupon c
+                    "SELECT c.id, c.discount, c.coupon_condition, c.code, c.status 
+                    FROM {$wpdb->prefix}onsite_coupon as c
 
                     WHERE c.campaign_id = %d 
-                    AND c.billing_id IS NOT NULL 
-                    OR c.status = 1
+                    AND c.status = 1
 
                     GROUP BY c.discount, c.coupon_condition, c.code
                     ORDER BY c.discount ASC"
