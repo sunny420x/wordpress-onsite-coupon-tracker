@@ -439,7 +439,7 @@ function onsite_coupon_tracker_page() {
                 $campaign_id = $_GET['campaign'];
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND user_id IS NOT NULL OR status = 1 ORDER BY discount_amount ASC"
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND (user_id IS NOT NULL OR status = 1) ORDER BY discount_amount ASC"
                 , $campaign_id));
             ?>
             <h1 style="margin-top: 0;">🎉 คูปองที่ถูกเก็บแล้ว</h1>
@@ -1117,7 +1117,7 @@ function my_onsite_coupons_table() {
   <div class="card">
     <div class="card-header"><button class="btn btn-link" data-toggle="collapse" data-target="#onsiteCouponAccordion" aria-expanded="true" aria-controls="onsiteCouponAccordion">🎫 คูปองส่วนลดพิเศษสำหรับใช้งานหน้าร้าน</button></div>
     <div id="onsiteCouponAccordion" class="collapse show" data-parent="#onsiteCoupon">
-      <div class="card-body" style="overflow: auto; background:#fff; border-radius:8px; padding:25px; margin-bottom:30px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
+      <div class="card-body" style="overflow: auto; background:#fff; border-radius:8px; padding:25px; margin-bottom:30px;">
         <?php
         if(isset($_GET['status'])) {
             if($_GET['status'] == 'coupon_converted_to_website') {
