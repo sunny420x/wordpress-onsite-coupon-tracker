@@ -46,7 +46,7 @@ function onsite_couple_plugin_install() {
     $create_coupon_query = "CREATE TABLE IF NOT EXISTS $coupon_table (
         id int(11) NOT NULL AUTO_INCREMENT,
         code VARCHAR(6) NOT NULL,
-        code VARCHAR(100) NOT NULL,
+        display_code VARCHAR(50) DEFAULT NULL,
         discount VARCHAR(20) NOT NULL,
         status int(1) NOT NULL DEFAULT 0,
         user_id int(11),
@@ -61,6 +61,7 @@ function onsite_couple_plugin_install() {
     $create_campaign_query = "CREATE TABLE IF NOT EXISTS $campaign_table (
         id int(11) NOT NULL AUTO_INCREMENT,
         name VARCHAR(50) NOT NULL,
+        enable_fake_coupons_code INT(1) DEFAULT 0,
         start_date datetime NOT NULL,
         end_date datetime NOT NULL,
         created_at datetime NOT NULL,
@@ -79,9 +80,11 @@ function onsite_coupon_tracker_page() {
         $campaign_name = sanitize_text_field($_POST['campaign_name']);
         $campaign_start_date = sanitize_text_field($_POST['campaign_start_date']) ." ". sanitize_text_field($_POST['campaign_start_time']);
         $campaign_end_date = sanitize_text_field($_POST['campaign_end_date']) ." ". sanitize_text_field($_POST['campaign_end_time']);
+        $enable_fake_coupons_code = sanitize_text_field($_POST['enable_fake_coupons_code']);
         $created_at = date("Y-m-d H:i:s");
 
-        $insert_query = $wpdb->prepare("INSERT INTO {$wpdb->prefix}onsite_campaign(name, start_date, end_date, created_at) VALUES(%s, %s, %s, %s)", $campaign_name, $campaign_start_date, $campaign_end_date, $created_at);
+        $insert_query = $wpdb->prepare("INSERT INTO {$wpdb->prefix}onsite_campaign(name, start_date, end_date, enable_fake_coupons_code, created_at) 
+        VALUES(%s, %s, %s, %d, %s)", $campaign_name, $campaign_start_date, $campaign_end_date, $enable_fake_coupons_code, $created_at);
         $wpdb->query($insert_query);
 
         wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker'));
@@ -93,8 +96,9 @@ function onsite_coupon_tracker_page() {
         $campaign_name = sanitize_text_field($_POST['campaign_name']);
         $campaign_start_date = sanitize_text_field($_POST['campaign_start_date']) ." ". sanitize_text_field($_POST['campaign_start_time']);
         $campaign_end_date = sanitize_text_field($_POST['campaign_end_date']) ." ". sanitize_text_field($_POST['campaign_end_time']);
+        $enable_fake_coupons_code = sanitize_text_field($_POST['enable_fake_coupons_code']);
 
-        $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_campaign SET name = %s, start_date = %s, end_date = %s WHERE id = %d", $campaign_name, $campaign_start_date, $campaign_end_date, $campaign_id);
+        $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_campaign SET name = %s, start_date = %s, end_date = %s, enable_fake_coupons_code = %d WHERE id = %d", $campaign_name, $campaign_start_date, $campaign_end_date, $enable_fake_coupons_code, $campaign_id);
         $wpdb->query($update_query);
 
         wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker&campaign='.$campaign_id));
@@ -106,14 +110,15 @@ function onsite_coupon_tracker_page() {
         $coupon_discount = sanitize_text_field($_POST['coupon_discount']);
         $coupon_condition = sanitize_text_field($_POST['coupon_condition']);
         $discount_amount = sanitize_text_field($_POST['discount_amount']);
+        $display_code = sanitize_text_field($_POST['display_code']);
         $minspend = sanitize_text_field($_POST['minspend']);
         $campaign_id = sanitize_text_field($_POST['campaign_id']);
         $created_at = date("Y-m-d H:i:s");
         
         for($i = 0; $i < $coupon_amount; $i++) {            
             $coupon_code = wp_generate_password( 5, false );
-            $insert_query = $wpdb->prepare("INSERT INTO {$wpdb->prefix}onsite_coupon(code, coupon_condition, discount, campaign_id, discount_amount, minspend, created_at) VALUES(%s, %s, %s, %d, %d, %d, %s)", 
-             $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $discount_amount, $minspend, $created_at);
+            $insert_query = $wpdb->prepare("INSERT INTO {$wpdb->prefix}onsite_coupon(code, coupon_condition, discount, campaign_id, discount_amount, minspend, display_code, created_at) VALUES(%s, %s, %s, %d, %d, %d, %s, %s)", 
+             $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $discount_amount, $minspend, $display_code, $created_at);
             $wpdb->query($insert_query);
         }
 
@@ -127,14 +132,15 @@ function onsite_coupon_tracker_page() {
         $coupon_discount = sanitize_text_field($_POST['coupon_discount']);
         $coupon_condition = sanitize_text_field($_POST['coupon_condition']);
         $discount_amount = sanitize_text_field($_POST['discount_amount']);
+        $display_code = sanitize_text_field($_POST['display_code']);
         $minspend = sanitize_text_field($_POST['minspend']);
         $campaign_id = sanitize_text_field($_POST['campaign_id']);
         $coupon_status = (int) sanitize_text_field($_POST['coupon_status']);
         $billing_id = sanitize_text_field($_POST['billing_id']);
 
         $update_query = $wpdb->prepare("UPDATE {$wpdb->prefix}onsite_coupon SET code = %s, coupon_condition = %s, discount = %s, campaign_id = %d, 
-            status = %d, discount_amount = %d, minspend = %d, billing_id = %s WHERE id = %d",
-            $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $coupon_status, $discount_amount, $minspend, $billing_id, $coupon_id);
+            status = %d, discount_amount = %d, minspend = %d, display_code = %s, billing_id = %s WHERE id = %d",
+            $coupon_code, $coupon_condition, $coupon_discount, $campaign_id, $coupon_status, $discount_amount, $minspend, $display_code, $billing_id, $coupon_id);
         $wpdb->query($update_query);
 
         wp_redirect(admin_url('admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon='.$coupon_id));
@@ -269,6 +275,11 @@ function onsite_coupon_tracker_page() {
                             วันที่หมดเวลาแจกคูปอง: <input type="date" name="campaign_end_date" value="<?=explode(" ", $campaign->end_date)[0];?>">
                             เวลา: <input type="time" name="campaign_end_time" value="<?=explode(" ", $campaign->end_date)[1];?>">
                             <br><br>
+                            อนุญาตให้แสดงคูปองคงที่: <select name="enable_fake_coupons_code" id="">
+                                <option value="0" <?php echo ($campaign->enable_fake_coupons_code == 0) ? 'selected' : ''; ?>>ไม่ใช้งาน</option>
+                                <option value="1" <?php echo ($campaign->enable_fake_coupons_code == 1) ? 'selected' : ''; ?>>ใช้งาน</option>
+                            </select>
+                            <br><br>
                             <input type="submit" value="บันทึกการเปลี่ยนแปลง" name="editCampaign" class="button button-primary">
                         </form>
                     </div>
@@ -295,6 +306,7 @@ function onsite_coupon_tracker_page() {
                         ?>
                     </select><br><br>
                     ลดจำนวน: <input type="number" name="discount_amount" id="" required> บาท<br><br>
+                    รหัสที่แสดง: <input type="text" name="display_code" id=""><br><br>
                     ซื้อขั้นต่ำ: <input type="number" name="minspend" id="" required> บาท<br><br>
                     สร้างคูปองจำนวน: <input type="number" name="coupon_amount" id="" value="1" required><br><br>
                     <input type="submit" value="สร้างคูปอง" name="addCoupon" class="button">
@@ -655,6 +667,7 @@ function onsite_coupon_tracker_page() {
                     รหัสคูปอง: <input type="text" name="coupon_code" value="<?=$coupon->code;?>"><br><br>
                     ลดจำนวน: <input type="text" name="coupon_discount" value="<?=$coupon->discount;?>"><br><br>
                     เงื่อนไข: <input type="text" name="coupon_condition" value="<?=$coupon->coupon_condition;?>" style="width: 500px;"><br><br>
+                    รหัสที่แสดง: <input type="text" name="display_code" id="" value="<?=$coupon->display_code;?>"><br><br>
                     แคมเปญ: <select name="campaign_id" id="">
                         <?php
                         $campaigns = $wpdb->get_results(
@@ -796,6 +809,11 @@ function onsite_coupon_tracker_page() {
                     <br><br>
                     วันที่หมดเวลาแจกคูปอง: <input type="date" name="campaign_end_date" id="" required>
                     เวลา: <input type="time" name="campaign_end_time" id="" required>
+                    <br><br>
+                    อนุญาตให้แสดงคูปองคงที่: <select name="enable_fake_coupons_code" id="">
+                        <option value="0">ไม่ใช้งาน</option>
+                        <option value="1">ใช้งาน</option>
+                    </select>
                     <br><br>
                     <input type="submit" value="สร้างแคมเปญ" name="addCampaign" class="button button-primary">
                 </form>
@@ -942,7 +960,7 @@ add_shortcode('evoucher_page', function() {
 
     $current_time = current_time('mysql');
     $campaigns = $wpdb->get_results($wpdb->prepare(
-        "SELECT id, name, start_date, end_date 
+        "SELECT id, name, start_date, end_date, enable_fake_coupons_code 
         FROM {$wpdb->prefix}onsite_campaign 
         WHERE start_date <= %s 
         AND end_date >= %s 
@@ -972,7 +990,7 @@ add_shortcode('evoucher_page', function() {
                 <div class="coupon-container">
                     <?php
                     $sql = $wpdb->prepare(
-                        "SELECT c.discount, c.coupon_condition, c.code 
+                        "SELECT c.discount, c.coupon_condition, c.code, c.display_code 
                         FROM {$wpdb->prefix}onsite_coupon c
                         LEFT JOIN {$wpdb->prefix}posts p ON c.code = p.post_title AND p.post_type = 'shop_coupon'
                         WHERE c.status = 0 AND campaign_id = %d
@@ -997,9 +1015,15 @@ add_shortcode('evoucher_page', function() {
                                         <button class="btn-pick" <?php if($already_got_coupon > 0) { echo "disabled"; } ?> onclick="pickBtn('/e-voucher/pick/<?=$coupon->discount?>/<?=$coupon->coupon_condition?>/<?=$campaign->id;?>')">เก็บคูปองนี้</button>
                                         <?php
                                         } else {
+                                            if($campaign->enable_fake_coupons_code == 1) {
                                         ?>
-                                        <button class="btn-pick" onclick="showCoupon('<?=$coupon->code;?>','<?=$coupon->discount?>', '<?=$coupon->coupon_condition?>')">ใช้งานเลย!</button>
+                                        <button class="btn-pick" onclick="showCoupon('<?=$coupon->display_code;?>','<?=$coupon->code;?>','<?=$coupon->discount?>', '<?=$coupon->coupon_condition?>')">เก็บเลย!</button>
                                         <?php
+                                            } else {
+                                        ?>
+                                        <button class="btn-pick" onclick="showCoupon('<?=$coupon->code;?>', '<?=$coupon->code;?>','<?=$coupon->discount?>', '<?=$coupon->coupon_condition?>')">ใช้งานเลย!</button>
+                                        <?php
+                                            }
                                         }
                                         ?>
                                     </div>
@@ -1042,9 +1066,9 @@ add_shortcode('evoucher_page', function() {
                 window.location.href = url;
             }
 
-            function showCoupon(code, discount, coupon_condition) {
+            function showCoupon(display_code, code, discount, coupon_condition) {
                 document.getElementById('couponBox').style.display = "flex";
-                document.getElementById('couponBoxCode').innerText = code;
+                document.getElementById('couponBoxCode').innerText = display_code;
                 document.getElementById('couponDiscount').innerText = discount;
                 document.getElementById('couponCondition').innerText = coupon_condition;
                 document.getElementById('toWebCart').setAttribute('onclick', "window.location.href='/cart/?use_from_coupon_book="+code+"'");
