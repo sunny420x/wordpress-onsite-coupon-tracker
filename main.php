@@ -306,8 +306,8 @@ function onsite_coupon_tracker_page() {
                         ?>
                     </select><br><br>
                     ลดจำนวน: <input type="number" name="discount_amount" id="" required> บาท<br><br>
-                    รหัสที่แสดง: <input type="text" name="display_code" id=""><br><br>
                     ซื้อขั้นต่ำ: <input type="number" name="minspend" id="" required> บาท<br><br>
+                    รหัสที่แสดง: <input type="text" name="display_code" id=""><br><br>
                     สร้างคูปองจำนวน: <input type="number" name="coupon_amount" id="" value="1" required><br><br>
                     <input type="submit" value="สร้างคูปอง" name="addCoupon" class="button">
                 </form>
@@ -395,6 +395,11 @@ function onsite_coupon_tracker_page() {
             && $_GET['searchCoupon'] != 'available' && $_GET['searchCoupon'] != 'used') {
                 $campaign_id = $_GET['campaign'];
 
+                $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    $campaign_id
+                ));
+
                 $coupons = $wpdb->get_results($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND code LIKE %s",
                     $_GET['campaign'], "%".$_GET['searchCoupon']."%"
@@ -419,7 +424,9 @@ function onsite_coupon_tracker_page() {
                         ?>
                         <tr>
                             <td><?=$coupon->id;?></td>
-                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>">
+                                <?php if($enable_fake_coupons_code == 1 && $coupon->display_code != null) { echo $coupon->display_code." (".$coupon->code.")"; } else { echo $coupon->code; } ?>
+                            </a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
                             <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else {
@@ -449,6 +456,10 @@ function onsite_coupon_tracker_page() {
             <?php
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "picked") {
                 $campaign_id = $_GET['campaign'];
+                $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    $campaign_id
+                ));
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND (user_id IS NOT NULL OR status = 1) ORDER BY discount_amount ASC"
@@ -473,7 +484,9 @@ function onsite_coupon_tracker_page() {
                         ?>
                         <tr>
                             <td><?=$coupon->id;?></td>
-                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>">
+                                <?php if($enable_fake_coupons_code == 1 && $coupon->display_code != null) { echo $coupon->display_code." (".$coupon->code.")"; } else { echo $coupon->code; } ?>
+                            </a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
                             <td>
@@ -501,6 +514,10 @@ function onsite_coupon_tracker_page() {
             <?php
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "used") {
                 $campaign_id = $_GET['campaign'];
+                $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    $campaign_id
+                ));
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
                     "SELECT c.id, c.discount, c.coupon_condition, c.code, c.status 
@@ -532,7 +549,9 @@ function onsite_coupon_tracker_page() {
                         ?>
                         <tr>
                             <td><?=$coupon->id;?></td>
-                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>">
+                                <?php if($enable_fake_coupons_code == 1 && $coupon->display_code != null) { echo $coupon->display_code." (".$coupon->code.")"; } else { echo $coupon->code; } ?>
+                            </a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
                             <td>
@@ -560,6 +579,10 @@ function onsite_coupon_tracker_page() {
             <?php
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "available") {
                 $campaign_id = $_GET['campaign'];
+                $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    $campaign_id
+                ));
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND user_id IS NULL ORDER BY discount_amount ASC"
@@ -586,7 +609,9 @@ function onsite_coupon_tracker_page() {
                         ?>
                         <tr>
                             <td><?=$coupon->id;?></td>
-                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>">
+                                <?php if($enable_fake_coupons_code == 1 && $coupon->display_code != null) { echo $coupon->display_code." (".$coupon->code.")"; } else { echo $coupon->code; } ?>
+                            </a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
                         </tr>
@@ -602,6 +627,10 @@ function onsite_coupon_tracker_page() {
             <?php
             } elseif(isset($_GET['option']) && $_GET['option'] == "coupon-by-condition") {
                 $campaign_id = $_GET['campaign_id'];
+                $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    $campaign_id
+                ));
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
                     "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND coupon_condition = %s AND discount = %s ORDER BY discount_amount ASC",
@@ -629,7 +658,9 @@ function onsite_coupon_tracker_page() {
                         ?>
                         <tr>
                             <td><?=$coupon->id;?></td>
-                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>"><?=$coupon->code;?></a></td>
+                            <td><a href="admin.php?page=onsite_coupon_tracker&option=edit-coupon&coupon=<?=$coupon->id;?>">
+                                <?php if($enable_fake_coupons_code == 1 && $coupon->display_code != null) { echo $coupon->display_code." (".$coupon->code.")"; } else { echo $coupon->code; } ?>
+                            </a></td>
                             <td><?=$coupon->discount;?></td>
                             <td><?=$coupon->coupon_condition;?></td>
                             <td><?php if($coupon->user_id == null) { echo "<span style='color: green;'>ยังไม่ถูกเก็บ</span>"; } else {                             ?>
@@ -666,6 +697,7 @@ function onsite_coupon_tracker_page() {
                     <input type="hidden" name="coupon_id" value="<?=$coupon->id;?>">
                     รหัสคูปอง: <input type="text" name="coupon_code" value="<?=$coupon->code;?>"><br><br>
                     ลดจำนวน: <input type="text" name="coupon_discount" value="<?=$coupon->discount;?>"><br><br>
+                    ซื้อขั้นต่ำ: <input type="number" name="minspend" value="<?=$coupon->minspend;?>" required> บาท<br><br>
                     เงื่อนไข: <input type="text" name="coupon_condition" value="<?=$coupon->coupon_condition;?>" style="width: 500px;"><br><br>
                     รหัสที่แสดง: <input type="text" name="display_code" id="" value="<?=$coupon->display_code;?>"><br><br>
                     แคมเปญ: <select name="campaign_id" id="">
