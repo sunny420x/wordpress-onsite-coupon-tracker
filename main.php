@@ -24,13 +24,15 @@ add_action('admin_menu', 'onsite_coupon_tracker_menu');
 
 function coupon_tracker_enqueue_assets()
 {
-    wp_enqueue_style(
-        'coupon-tracker-style',
-        plugins_url('/css/style.css', __FILE__),
-        array(),
-        time(),
-        'all'
-    );
+    if ( is_page('e-voucher') ) {
+        wp_enqueue_style(
+            'coupon-tracker-style',
+            plugins_url('/css/style.css', __FILE__),
+            array(),
+            time(),
+            'all'
+        );
+    }
 }
 add_action('wp_enqueue_scripts', 'coupon_tracker_enqueue_assets');
 
