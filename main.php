@@ -248,8 +248,8 @@ function onsite_coupon_tracker_page() {
             <br>
             <br>
             <h2>⚙️ ตั้งค่า</h2>
-            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker")?>">📖 คู่มือการใช้งานระบบ</a>
-            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&option=settings")?>">🛠️ ตั้งค่าระบบ</a>
+            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker")?>" <?php if(!isset($_GET['option']) && !isset($_GET['campaign'])) { echo "class='active'"; }?> >📖 คู่มือการใช้งานระบบ</a>
+            <a href="<?=admin_url("admin.php?page=onsite_coupon_tracker&option=settings")?>" <?php if($_GET['option'] == "settings") { echo "class='active'"; }?>>🛠️ ตั้งค่าระบบ</a>
         </div>
         <div class="container">
             <?php
@@ -335,7 +335,7 @@ function onsite_coupon_tracker_page() {
                             SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as used,
                             SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as available,
                             SUM(CASE WHEN user_id IS NOT NULL AND user_id != 0 OR status = 1 THEN 1 ELSE 0 END) as taken
-                        FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d
+                        FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d ORDER BY discount_amount ASC
                     ", $campaign_id), OBJECT);
 
                     $all_coupon          = $stats->total;
@@ -367,7 +367,7 @@ function onsite_coupon_tracker_page() {
                                 if($_GET['searchCoupon'] === "all") {
                                     $coupons = $wpdb->get_results($wpdb->prepare(
                                         "SELECT discount,coupon_condition,COUNT(*) as amount FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d 
-                                        GROUP BY discount, coupon_condition ORDER BY discount_amount ASC",
+                                        GROUP BY discount, discount_amount, coupon_condition ORDER BY discount_amount ASC",
                                         $_GET['campaign']
                                     ));
                                 }
@@ -398,12 +398,12 @@ function onsite_coupon_tracker_page() {
                 $campaign_id = $_GET['campaign'];
 
                 $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
-                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d ORDER BY discount_amount ASC",
                     $campaign_id
                 ));
 
                 $coupons = $wpdb->get_results($wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND code LIKE %s",
+                    "SELECT * FROM {$wpdb->prefix}onsite_coupon WHERE campaign_id = %d AND code LIKE %s ORDER BY discount_amount ASC",
                     $_GET['campaign'], "%".$_GET['searchCoupon']."%"
                 ));
             ?>
@@ -459,7 +459,7 @@ function onsite_coupon_tracker_page() {
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "picked") {
                 $campaign_id = $_GET['campaign'];
                 $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
-                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d ORDER BY discount_amount ASC",
                     $campaign_id
                 ));
 
@@ -517,7 +517,7 @@ function onsite_coupon_tracker_page() {
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "used") {
                 $campaign_id = $_GET['campaign'];
                 $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
-                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d ORDER BY discount_amount ASC",
                     $campaign_id
                 ));
 
@@ -582,7 +582,7 @@ function onsite_coupon_tracker_page() {
             } elseif(isset($_GET['searchCoupon']) && isset($_GET['campaign']) && $_GET['searchCoupon'] == "available") {
                 $campaign_id = $_GET['campaign'];
                 $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
-                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d ORDER BY discount_amount ASC",
                     $campaign_id
                 ));
 
@@ -630,7 +630,7 @@ function onsite_coupon_tracker_page() {
             } elseif(isset($_GET['option']) && $_GET['option'] == "coupon-by-condition") {
                 $campaign_id = $_GET['campaign_id'];
                 $enable_fake_coupons_code = $wpdb->get_var($wpdb->prepare(
-                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d",
+                    "SELECT enable_fake_coupons_code FROM {$wpdb->prefix}onsite_campaign WHERE id = %d ORDER BY discount_amount ASC",
                     $campaign_id
                 ));
 
@@ -730,27 +730,37 @@ function onsite_coupon_tracker_page() {
 
                 $report = $wpdb->get_results($wpdb->prepare(
                     "SELECT
-                        onsite.code, 
-                        onsite.billing_id,
-                        onsite.discount,
-                        onsite.coupon_condition,
+                        coupon.code, 
+                        coupon.billing_id,
+                        coupon.discount,
+                        coupon.coupon_condition,
                         users.display_name,
                         posts.post_date AS order_at,
                         meta_total.meta_value AS totals,
                         campaign.name 
-                    FROM {$wpdb->prefix}onsite_coupon AS onsite
-                    LEFT JOIN {$wpdb->users} AS users ON onsite.user_id = users.ID
-                    LEFT JOIN {$wpdb->posts} AS posts ON onsite.billing_id = posts.ID
-                    LEFT JOIN {$wpdb->prefix}postmeta AS meta_total ON onsite.billing_id = meta_total.post_id AND meta_total.meta_key = '_order_total'
-                    LEFT JOIN {$wpdb->prefix}onsite_campaign as campaign ON onsite.campaign_id = campaign.id 
+                    FROM {$wpdb->prefix}onsite_coupon AS coupon
+                    LEFT JOIN {$wpdb->users} AS users ON coupon.user_id = users.ID
+                    LEFT JOIN {$wpdb->posts} AS posts ON coupon.billing_id = posts.ID
+                    LEFT JOIN {$wpdb->prefix}postmeta AS meta_total ON coupon.billing_id = meta_total.post_id AND meta_total.meta_key = '_order_total'
+                    LEFT JOIN {$wpdb->prefix}onsite_campaign as campaign ON coupon.campaign_id = campaign.id 
                     
-                    WHERE onsite.status = 1 AND onsite.campaign_id = %d 
-                    ORDER BY onsite.discount_amount DESC
+                    WHERE coupon.status = 1 AND coupon.campaign_id = %d 
+                    ORDER BY coupon.discount_amount DESC
                 ",  $campaign_id));
+
+                $used_discount_sum = 0;
+
+                foreach($report as $row) {
+                    $used_discount_sum += (int) $row->discount;
+                }
                 ?>
                 <h1>รายงานแคมเปญ: <?=$report[0]->name?></h1>
                 <div style="padding: 0px 25px 25px 25px;">
                     <button class="button no-print" onclick="window.print()" style="margin: 0 0 20px 0; width: 100%;">🖨️ ออกรายงาน</button>
+                    <h3>ลดไปแล้ว <?=($used_discount_sum)?> บาท จาก <?=count($report)?> คูปอง</h3>
+                    <strong>ออกรายงานเมื่อวันที่ <?=date("d/m/Y")?></strong>
+                    <br>
+                    <br>
                     <table class="wp-list-table widefat fixed striped">
                         <thead>
                             <tr>
@@ -771,7 +781,7 @@ function onsite_coupon_tracker_page() {
                                     <td><?=wc_price($row->totals)?></td>
                                     <td style="color: red;">-<?=wc_price($row->discount);?> (<?=$row->code?>)</td>
                                     <td><?=$row->coupon_condition;?></td>
-                                    <td><?php if(date('d/m/Y H:i', strtotime($row->order_at)) != null) { echo $row->order_at; } else { echo "-"; }?></td>
+                                    <td><?php if($row->order_at != null) { echo $row->order_at; } else { echo "-- ไม่พบเวลาที่ทำรายการ --"; }?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php else : ?>
