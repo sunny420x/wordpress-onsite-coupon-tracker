@@ -10,12 +10,12 @@
 function onsite_coupon_tracker_menu()
 {
     add_menu_page(
-        'ระบบสร้างและติดตามการใช้งานคูปอง Onsite',    // Page title
+        'ระบบสร้างและติดตามการใช้งานคูปอง',    // Page title
         'คูปอง E-Voucher',                          // Menu title
         'edit_posts',                        // Capability required
         'onsite_coupon_tracker',                             // Menu slug
         'onsite_coupon_tracker_page',            // Callback function to display page content
-        'dashicons-buddicons-groups',                 // Icon URL or Dashicon class
+        'dashicons-tickets-alt',                 // Icon URL or Dashicon class
         80                                       // Position in the menu (optional)
     );
 }
