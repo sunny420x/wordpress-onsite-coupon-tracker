@@ -6,6 +6,7 @@
  * Author URI: https://www.linkedin.com/in/sunny-jirakit
  * Plugin URI: https://github.com/sunny420x/wordpress-onsite-coupon-tracker
  * GitHub Plugin URI: https://github.com/sunny420x/wordpress-onsite-coupon-tracker
+ * Version: 1.0.0
  * Primary Branch: master
  */
 
